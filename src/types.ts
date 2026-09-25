@@ -26,6 +26,7 @@ export interface LeadInput {
   notes: string;
   emailContent?: string;
   email?: string;
+  isSample?: boolean;
 }
 
 export interface Lead extends LeadInput {
@@ -43,6 +44,7 @@ export interface Lead extends LeadInput {
   avatarBg: string;
   avatarTextColor: string;
   createdAt: string;
+  isSample?: boolean;
 }
 
 export interface AnalyzeSingleRequest {

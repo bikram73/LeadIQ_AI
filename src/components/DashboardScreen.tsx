@@ -8,6 +8,7 @@ interface DashboardScreenProps {
   onAddLead: (lead: Lead) => void;
   onResetLeads: () => void;
   onLoadDemoLeads?: () => void;
+  onRemoveSampleLeads?: () => void;
 }
 
 export const DashboardScreen: React.FC<DashboardScreenProps> = ({
@@ -15,6 +16,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
   onNavigate,
   onResetLeads,
   onLoadDemoLeads,
+  onRemoveSampleLeads,
 }) => {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(leads[0] || null);
   const [filterTier, setFilterTier] = useState<string>('ALL');
@@ -56,6 +58,10 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
 
   // Calculate KPIs
   const totalLeads = leads.length;
+  const userLeadsCount = leads.filter((l) => !l.isSample).length;
+  const sampleLeadsCount = leads.filter((l) => l.isSample).length;
+  const hasSampleLeads = sampleLeadsCount > 0;
+
   const hotLeadsCount = leads.filter((l) => l.score >= 90 || l.tier === 'Hot').length;
   const warmLeadsCount = leads.filter((l) => (l.score >= 70 && l.score < 90) || l.tier === 'Warm').length;
   const coldLeadsCount = leads.filter((l) => l.score < 70 || l.tier === 'Cold' || l.tier === 'Very Low').length;
@@ -132,11 +138,15 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
           {onLoadDemoLeads && (
             <button
               onClick={onLoadDemoLeads}
-              title="Load 5 PRD Benchmark Sample Leads"
-              className="px-3 sm:px-3.5 py-2.5 bg-white border border-[#E2E8F0] rounded-xl text-xs font-bold text-[#006b2c] hover:bg-[#006b2c]/5 shadow-xs transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer min-h-[42px]"
+              title="Load 5 benchmark sample leads (Temporary session view - cleared on page refresh)"
+              className={`px-3 sm:px-3.5 py-2.5 border rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer min-h-[42px] ${
+                hasSampleLeads
+                  ? 'bg-[#006b2c]/10 text-[#006b2c] border-[#006b2c]/40 ring-1 ring-[#006b2c]/30 shadow-xs'
+                  : 'bg-white border-[#E2E8F0] text-[#006b2c] hover:bg-[#006b2c]/5 shadow-xs'
+              }`}
             >
               <span className="material-symbols-outlined text-base">science</span>
-              Sample Leads
+              {hasSampleLeads ? `Sample Leads (${sampleLeadsCount})` : 'Sample Leads'}
             </button>
           )}
 
@@ -186,11 +196,33 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
               className="px-3 py-2.5 bg-white border border-[#FCA5A5] text-[#DC2626] rounded-xl text-xs font-semibold hover:bg-[#FEF2F2] transition-colors flex items-center gap-1 whitespace-nowrap shrink-0 cursor-pointer min-h-[42px]"
             >
               <span className="material-symbols-outlined text-base">delete_sweep</span>
-              Clear
+              Clear All
             </button>
           )}
         </div>
       </div>
+
+      {/* Temporary Sample Leads Notice Banner */}
+      {hasSampleLeads && (
+        <div className="mb-6 p-3 sm:p-4 bg-[#006b2c]/10 rounded-2xl border border-[#006b2c]/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2.5 text-xs text-[#0F172A]">
+            <span className="material-symbols-outlined text-lg text-[#006b2c] shrink-0">
+              info
+            </span>
+            <p className="leading-snug">
+              <strong className="font-bold text-[#006b2c]">Sample Leads active ({sampleLeadsCount}):</strong> Sample leads are temporary and will clear on page refresh. Your analyzed leads ({userLeadsCount}) remain permanently stored until cleared.
+            </p>
+          </div>
+          {onRemoveSampleLeads && (
+            <button
+              onClick={onRemoveSampleLeads}
+              className="self-start sm:self-auto px-3 py-1.5 bg-white border border-[#E2E8F0] text-[#64748B] hover:text-[#DC2626] hover:border-[#FCA5A5] rounded-xl text-xs font-bold transition-colors whitespace-nowrap cursor-pointer shrink-0"
+            >
+              Dismiss Samples
+            </button>
+          )}
+        </div>
+      )}
 
       {/* KPI Stats Grid (2x2 on mobile, 4x1 on desktop) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-6 md:mb-8">
@@ -205,7 +237,11 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
           </div>
           <h3 className="text-2xl sm:text-3xl font-extrabold text-[#0F172A]">{totalLeads}</h3>
           <p className="text-[11px] sm:text-xs font-semibold text-[#006b2c] mt-0.5 truncate">
-            {totalLeads > 0 ? 'Active in Session' : 'Queue Empty'}
+            {userLeadsCount > 0
+              ? `${userLeadsCount} User ${hasSampleLeads ? `+ ${sampleLeadsCount} Sample` : 'Saved'}`
+              : totalLeads > 0
+              ? `${sampleLeadsCount} Sample (Session)`
+              : 'Queue Empty'}
           </p>
         </div>
 
@@ -309,7 +345,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
             </div>
           </div>
 
-          {/* MOBILE VIEW: Touch Card List (visible on sm/xs screens) */}
+          {/* MOBILE VIEW: Touch Card List */}
           <div className="block md:hidden divide-y divide-[#E2E8F0]">
             {filteredLeads.length > 0 ? (
               filteredLeads.map((lead) => {
@@ -330,9 +366,14 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
                           {lead.avatarInitials}
                         </div>
                         <div className="min-w-0">
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
                             <span className="text-[10px] font-extrabold text-[#64748B]">#{lead.rank}</span>
                             <h4 className="text-xs font-bold text-[#0F172A] truncate">{lead.fullName}</h4>
+                            {lead.isSample && (
+                              <span className="text-[9px] font-semibold bg-[#E2E8F0] text-[#64748B] px-1.5 py-0.2 rounded">
+                                Sample
+                              </span>
+                            )}
                           </div>
                           <p className="text-[11px] text-[#64748B] truncate">
                             {lead.jobTitle || 'Contact'} · <span className="font-semibold text-[#0F172A]">{lead.company}</span>
@@ -394,7 +435,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
             )}
           </div>
 
-          {/* DESKTOP VIEW: Data Table (visible on md/lg screens) */}
+          {/* DESKTOP VIEW: Data Table */}
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -430,9 +471,16 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
                               {lead.avatarInitials}
                             </div>
                             <div>
-                              <p className="text-xs font-extrabold text-[#0F172A] leading-tight">
-                                {lead.fullName}
-                              </p>
+                              <div className="flex items-center gap-1.5">
+                                <p className="text-xs font-extrabold text-[#0F172A] leading-tight">
+                                  {lead.fullName}
+                                </p>
+                                {lead.isSample && (
+                                  <span className="text-[9px] font-semibold bg-[#E2E8F0] text-[#64748B] px-1.5 py-0.2 rounded">
+                                    Sample
+                                  </span>
+                                )}
+                              </div>
                               <p className="text-[11px] text-[#64748B]">
                                 {lead.jobTitle} • <span className="font-semibold text-[#0F172A]">{lead.company}</span>
                               </p>
@@ -522,7 +570,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
           </div>
         </div>
 
-        {/* Selected Lead Detailed Explanation Panel (5 cols desktop, sticky or modal on mobile) */}
+        {/* Selected Lead Detailed Explanation Panel */}
         <div className="lg:col-span-5 bg-white p-5 sm:p-6 md:p-8 rounded-2xl sm:rounded-3xl border border-[#E2E8F0] shadow-sm flex flex-col justify-between">
           {selectedLead ? (
             <div>
@@ -534,9 +582,16 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
                     {selectedLead.avatarInitials}
                   </div>
                   <div className="min-w-0">
-                    <h3 className="text-base sm:text-lg font-extrabold text-[#0F172A] truncate">
-                      {selectedLead.fullName}
-                    </h3>
+                    <div className="flex items-center gap-1.5">
+                      <h3 className="text-base sm:text-lg font-extrabold text-[#0F172A] truncate">
+                        {selectedLead.fullName}
+                      </h3>
+                      {selectedLead.isSample && (
+                        <span className="text-[9px] font-semibold bg-[#E2E8F0] text-[#64748B] px-1.5 py-0.2 rounded shrink-0">
+                          Sample
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-[#64748B] truncate">
                       {selectedLead.jobTitle} at <span className="font-bold text-[#0F172A]">{selectedLead.company}</span>
                     </p>
@@ -698,7 +753,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
         </div>
       </div>
 
-      {/* MOBILE SLIDE-UP MODAL / BOTTOM SHEET FOR LEAD INSPECTION */}
+      {/* MOBILE SLIDE-UP MODAL / BOTTOM SHEET */}
       {mobileDetailOpen && selectedLead && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col justify-end md:hidden animate-in fade-in duration-200">
           <div
@@ -716,7 +771,14 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
                   {selectedLead.avatarInitials}
                 </div>
                 <div>
-                  <h3 className="text-base font-extrabold text-[#0F172A]">{selectedLead.fullName}</h3>
+                  <div className="flex items-center gap-1.5">
+                    <h3 className="text-base font-extrabold text-[#0F172A]">{selectedLead.fullName}</h3>
+                    {selectedLead.isSample && (
+                      <span className="text-[9px] font-semibold bg-[#E2E8F0] text-[#64748B] px-1.5 py-0.2 rounded">
+                        Sample
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-[#64748B]">
                     {selectedLead.jobTitle} • <span className="font-bold text-[#0F172A]">{selectedLead.company}</span>
                   </p>

@@ -20,7 +20,9 @@ export default function App() {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return rankLeads(parsed);
+          // Exclude any temporary sample leads, only persist user-entered & analyzed leads
+          const userOnlyLeads = parsed.filter((l: Lead) => !l.isSample);
+          return rankLeads(userOnlyLeads);
         }
       }
     } catch {
@@ -30,10 +32,11 @@ export default function App() {
     return [];
   });
 
-  // Sync to localStorage whenever leads change
+  // Sync only user-entered/analyzed leads to localStorage (sample leads are session-only)
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(leads));
+      const userOnlyLeads = leads.filter((l) => !l.isSample);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(userOnlyLeads));
     } catch (e) {
       console.warn('Failed to save leads to localStorage', e);
     }
@@ -46,9 +49,13 @@ export default function App() {
 
   const handleAddLead = (newLead: Lead) => {
     setLeads((prev) => {
-      // Check if duplicate ID exists, replace or append
-      const filtered = prev.filter((l) => l.id !== newLead.id);
-      return rankLeads([newLead, ...filtered]);
+      // Check if duplicate ID exists, replace or append (ensuring isSample is not set for real user leads)
+      const sanitizedLead: Lead = {
+        ...newLead,
+        isSample: false,
+      };
+      const filtered = prev.filter((l) => l.id !== sanitizedLead.id);
+      return rankLeads([sanitizedLead, ...filtered]);
     });
   };
 
@@ -68,7 +75,21 @@ export default function App() {
   };
 
   const handleLoadDemoLeads = () => {
-    setLeads(rankLeads(SAMPLE_PRD_LEADS));
+    // Tag sample leads with isSample: true so they only show in active session and clear on refresh
+    const sampleLeadsWithFlag: Lead[] = SAMPLE_PRD_LEADS.map((l) => ({
+      ...l,
+      isSample: true,
+    }));
+
+    setLeads((prev) => {
+      // Filter out any previous sample leads and append fresh sample leads alongside user's own leads
+      const userLeads = prev.filter((l) => !l.isSample);
+      return rankLeads([...userLeads, ...sampleLeadsWithFlag]);
+    });
+  };
+
+  const handleRemoveSampleLeads = () => {
+    setLeads((prev) => rankLeads(prev.filter((l) => !l.isSample)));
   };
 
   return (
@@ -97,6 +118,7 @@ export default function App() {
             onAddLead={handleAddLead}
             onResetLeads={handleClearLeads}
             onLoadDemoLeads={handleLoadDemoLeads}
+            onRemoveSampleLeads={handleRemoveSampleLeads}
           />
         )}
 

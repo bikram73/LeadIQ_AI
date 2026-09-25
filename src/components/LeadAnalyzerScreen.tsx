@@ -194,10 +194,14 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
     setIsAnalyzing(true);
     setStatusMessage('Importing and qualifying 5 PRD Benchmark dataset leads...');
     setTimeout(() => {
-      onAddMultipleLeads(SAMPLE_PRD_LEADS);
-      setAnalyzedLead(SAMPLE_PRD_LEADS[0]);
+      const sampleLeadsWithFlag = SAMPLE_PRD_LEADS.map((l) => ({
+        ...l,
+        isSample: true,
+      }));
+      onAddMultipleLeads(sampleLeadsWithFlag);
+      setAnalyzedLead(sampleLeadsWithFlag[0]);
       setIsAnalyzing(false);
-      setStatusMessage('✓ Loaded 5 PRD sample dataset leads (David Brown, John Carter, Michael Ross, Sarah Lee, Emma Wilson) into session dashboard queue!');
+      setStatusMessage('✓ Loaded 5 PRD sample dataset leads (preview session only - cleared on refresh) into Dashboard queue!');
     }, 600);
   };
 
