@@ -1,0 +1,206 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <radialGradient id="bgGrad" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="60%" stop-color="#f4f7f6" />
+      <stop offset="100%" stop-color="#e8eee9" />
+    </radialGradient>
+
+    <!-- Glass Fill Gradient -->
+    <linearGradient id="glassFill" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.85" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.45" />
+    </linearGradient>
+
+    <linearGradient id="glassFillDark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95" />
+      <stop offset="100%" stop-color="#f0fdf4" stop-opacity="0.7" />
+    </linearGradient>
+
+    <!-- Green Glowing Ribbon Gradients -->
+    <linearGradient id="ribbon1" x1="0%" y1="0%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#10b981" stop-opacity="0.25" />
+      <stop offset="50%" stop-color="#006b2c" stop-opacity="0.5" />
+      <stop offset="100%" stop-color="#34d399" stop-opacity="0.7" />
+    </linearGradient>
+
+    <linearGradient id="ribbon2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#34d399" stop-opacity="0.2" />
+      <stop offset="60%" stop-color="#006b2c" stop-opacity="0.55" />
+      <stop offset="100%" stop-color="#10b981" stop-opacity="0.75" />
+    </linearGradient>
+
+    <linearGradient id="ribbon3" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#006b2c" stop-opacity="0.2" />
+      <stop offset="50%" stop-color="#10b981" stop-opacity="0.5" />
+      <stop offset="100%" stop-color="#6ee7b7" stop-opacity="0.8" />
+    </linearGradient>
+
+    <!-- Emerald Badge Gradient -->
+    <linearGradient id="emeraldBadge" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#006b2c" />
+      <stop offset="100%" stop-color="#10b981" />
+    </linearGradient>
+
+    <!-- Glow Filter -->
+    <filter id="greenGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="25" result="blur" />
+    </filter>
+
+    <!-- Card Shadow -->
+    <filter id="cardShadow" x="-20%" y="-20%" width="150%" height="150%">
+      <feDropShadow dx="0" dy="20" stdDeviation="24" flood-color="#0f172a" flood-opacity="0.08" />
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#006b2c" flood-opacity="0.05" />
+    </filter>
+  </defs>
+
+  <!-- Canvas Background -->
+  <rect width="1200" height="675" fill="url(#bgGrad)" />
+
+  <!-- Ambient Light Reflection -->
+  <circle cx="800" cy="250" r="300" fill="#10b981" opacity="0.08" filter="url(#softGlow)" />
+  <circle cx="300" cy="450" r="250" fill="#006b2c" opacity="0.06" filter="url(#softGlow)" />
+
+  <!-- 3D Ribbon Tracks (Flowing from Left Inputs to Right Dashboard) -->
+  <g opacity="0.85">
+    <!-- Top Ribbon: Intent -> Dashboard -->
+    <path d="M 270 200 C 420 200, 520 310, 720 330 L 720 365 C 520 345, 420 235, 270 235 Z" fill="url(#ribbon1)" />
+    <path d="M 270 215 C 420 215, 520 320, 720 345" stroke="#6ee7b7" stroke-width="3" fill="none" opacity="0.8" filter="url(#greenGlow)" />
+
+    <!-- Middle Ribbon: Budget -> Dashboard -->
+    <path d="M 320 460 C 470 460, 550 360, 720 350 L 720 380 C 550 390, 470 490, 320 490 Z" fill="url(#ribbon2)" />
+    <path d="M 320 475 C 470 475, 550 375, 720 365" stroke="#34d399" stroke-width="3" fill="none" opacity="0.8" filter="url(#greenGlow)" />
+
+    <!-- Bottom Ribbon: Authority -> Dashboard -->
+    <path d="M 520 550 C 590 550, 630 410, 720 370 L 720 395 C 630 435, 590 575, 520 575 Z" fill="url(#ribbon3)" />
+    <path d="M 520 562 C 590 562, 630 422, 720 382" stroke="#a7f3d0" stroke-width="3" fill="none" opacity="0.8" filter="url(#greenGlow)" />
+  </g>
+
+  <!-- LEFT FLOATING GLASS CARDS -->
+
+  <!-- Card 1: INTENT -->
+  <g transform="translate(140, 140) rotate(-6)" filter="url(#cardShadow)">
+    <!-- Glass Base -->
+    <rect x="0" y="0" width="180" height="100" rx="20" fill="url(#glassFill)" stroke="#ffffff" stroke-width="2" />
+    <rect x="1" y="1" width="178" height="98" rx="19" fill="none" stroke="rgba(16, 185, 129, 0.2)" stroke-width="1" />
+    
+    <!-- Icon Circle -->
+    <rect x="20" y="20" width="44" height="44" rx="12" fill="#e6f4ea" />
+    <!-- Search Icon -->
+    <path d="M 36 34 A 7 7 0 1 0 46 44 L 52 50" stroke="#006b2c" stroke-width="2.5" stroke-linecap="round" fill="none" />
+    <circle cx="40" cy="38" r="6" stroke="#006b2c" stroke-width="2.5" fill="none" />
+
+    <!-- Label -->
+    <text x="76" y="47" font-family="Inter, sans-serif" font-weight="700" font-size="16" fill="#0f172a">Intent</text>
+    <text x="76" y="63" font-family="Inter, sans-serif" font-weight="500" font-size="11" fill="#64748b">High Signal</text>
+  </g>
+
+  <!-- Card 2: BUDGET -->
+  <g transform="translate(190, 410) rotate(-4)" filter="url(#cardShadow)">
+    <rect x="0" y="0" width="180" height="100" rx="20" fill="url(#glassFill)" stroke="#ffffff" stroke-width="2" />
+    <rect x="1" y="1" width="178" height="98" rx="19" fill="none" stroke="rgba(16, 185, 129, 0.2)" stroke-width="1" />
+
+    <!-- Wallet Icon -->
+    <rect x="20" y="20" width="44" height="44" rx="12" fill="#e6f4ea" />
+    <rect x="30" y="32" width="24" height="18" rx="4" stroke="#006b2c" stroke-width="2.2" fill="none" />
+    <path d="M 30 37 L 54 37" stroke="#006b2c" stroke-width="2" />
+    <circle cx="48" cy="42" r="1.5" fill="#006b2c" />
+
+    <!-- Label -->
+    <text x="76" y="47" font-family="Inter, sans-serif" font-weight="700" font-size="16" fill="#0f172a">Budget</text>
+    <text x="76" y="63" font-family="Inter, sans-serif" font-weight="500" font-size="11" fill="#64748b">Verified Fit</text>
+  </g>
+
+  <!-- Card 3: AUTHORITY -->
+  <g transform="translate(380, 500) rotate(-2)" filter="url(#cardShadow)">
+    <rect x="0" y="0" width="190" height="100" rx="20" fill="url(#glassFill)" stroke="#ffffff" stroke-width="2" />
+    <rect x="1" y="1" width="188" height="98" rx="19" fill="none" stroke="rgba(16, 185, 129, 0.2)" stroke-width="1" />
+
+    <!-- Authority Icon -->
+    <rect x="20" y="20" width="44" height="44" rx="12" fill="#e6f4ea" />
+    <circle cx="42" cy="34" r="5" stroke="#006b2c" stroke-width="2" fill="none" />
+    <path d="M 33 48 C 33 42, 51 42, 51 48" stroke="#006b2c" stroke-width="2" stroke-linecap="round" fill="none" />
+    <circle cx="50" cy="44" r="4" fill="#10b981" />
+    <path d="M 48 44 L 49.5 45.5 L 52 43" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round" fill="none" />
+
+    <!-- Label -->
+    <text x="76" y="47" font-family="Inter, sans-serif" font-weight="700" font-size="16" fill="#0f172a">Authority</text>
+    <text x="76" y="63" font-family="Inter, sans-serif" font-weight="500" font-size="11" fill="#64748b">VP / C-Level</text>
+  </g>
+
+  <!-- RIGHT 3D CURVED DASHBOARD PANEL -->
+  <g transform="translate(680, 80)" filter="url(#cardShadow)">
+    <!-- Dashboard Glass Frame -->
+    <rect x="0" y="0" width="460" height="500" rx="28" fill="url(#glassFillDark)" stroke="#ffffff" stroke-width="2.5" />
+    <rect x="2" y="2" width="456" height="496" rx="26" fill="none" stroke="rgba(0, 107, 44, 0.15)" stroke-width="1" />
+
+    <!-- Header Navigation Bar inside Dashboard -->
+    <g transform="translate(30, 25)">
+      <circle cx="12" cy="12" r="10" fill="#006b2c" />
+      <path d="M 8 12 L 11 15 L 16 9" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+      <text x="32" y="17" font-family="Inter, sans-serif" font-weight="700" font-size="15" fill="#0f172a">Dashboard</text>
+      <text x="380" y="17" font-family="Inter, sans-serif" font-weight="600" font-size="12" fill="#10b981">Live AI</text>
+    </g>
+
+    <!-- MAIN AI LEAD QUALIFIED HERO BADGE -->
+    <g transform="translate(30, 65)">
+      <rect x="0" y="0" width="400" height="130" rx="22" fill="url(#emeraldBadge)" filter="url(#greenGlow)" />
+      
+      <!-- Checkmark Icon Circle -->
+      <circle cx="55" cy="65" r="28" fill="#ffffff" opacity="0.25" />
+      <circle cx="55" cy="65" r="22" fill="#ffffff" />
+      <path d="M 46 65 L 52 71 L 64 58" stroke="#006b2c" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+
+      <text x="96" y="58" font-family="Inter, sans-serif" font-weight="800" font-size="24" fill="#ffffff" letter-spacing="0.5">AI LEAD</text>
+      <text x="96" y="86" font-family="Inter, sans-serif" font-weight="800" font-size="24" fill="#ffffff" letter-spacing="0.5">QUALIFIED</text>
+      
+      <rect x="310" y="48" width="65" height="34" rx="10" fill="rgba(255,255,255,0.2)" />
+      <text x="342" y="70" font-family="Inter, sans-serif" font-weight="800" font-size="14" fill="#ffffff" text-anchor="middle">98%</text>
+    </g>
+
+    <!-- CHARTS SECTION -->
+    <!-- Chart 1: Wave Line Graph -->
+    <g transform="translate(30, 220)">
+      <rect x="0" y="0" width="240" height="140" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1" />
+      <text x="16" y="24" font-family="Inter, sans-serif" font-weight="700" font-size="12" fill="#0f172a">Intent Growth</text>
+      
+      <!-- Wave Path -->
+      <path d="M 16 110 Q 50 90, 80 100 T 150 60 T 220 40" fill="none" stroke="#10b981" stroke-width="3" stroke-linecap="round" />
+      <path d="M 16 110 Q 50 90, 80 100 T 150 60 T 220 40 L 220 120 L 16 120 Z" fill="url(#ribbon1)" opacity="0.3" />
+      <circle cx="220" cy="40" r="5" fill="#006b2c" />
+    </g>
+
+    <!-- Chart 2: Donut Ring -->
+    <g transform="translate(280, 220)">
+      <rect x="0" y="0" width="150" height="140" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1" />
+      <text x="16" y="24" font-family="Inter, sans-serif" font-weight="700" font-size="12" fill="#0f172a">ICP Match</text>
+      
+      <circle cx="75" cy="82" r="32" stroke="#f1f5f9" stroke-width="8" fill="none" />
+      <circle cx="75" cy="82" r="32" stroke="#006b2c" stroke-width="8" stroke-dasharray="160 200" fill="none" stroke-linecap="round" transform="rotate(-90 75 82)" />
+      <text x="75" y="87" font-family="Inter, sans-serif" font-weight="800" font-size="13" fill="#0f172a" text-anchor="middle">85%</text>
+    </g>
+
+    <!-- BOTTOM ACTIONS / METRICS LIST -->
+    <g transform="translate(30, 380)">
+      <rect x="0" y="0" width="400" height="90" rx="16" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1" />
+      
+      <g transform="translate(16, 20)">
+        <circle cx="10" cy="10" r="8" fill="#e6f4ea" />
+        <path d="M 7 10 L 9 12 L 13 8" stroke="#006b2c" stroke-width="1.8" stroke-linecap="round" fill="none" />
+        <text x="26" y="14" font-family="Inter, sans-serif" font-weight="600" font-size="12" fill="#0f172a">Automated Routing to Enterprise Reps</text>
+      </g>
+
+      <g transform="translate(16, 50)">
+        <circle cx="10" cy="10" r="8" fill="#e6f4ea" />
+        <path d="M 7 10 L 9 12 L 13 8" stroke="#006b2c" stroke-width="1.8" stroke-linecap="round" fill="none" />
+        <text x="26" y="14" font-family="Inter, sans-serif" font-weight="600" font-size="12" fill="#0f172a">Priority VIP Demo Calendar Link Dispatched</text>
+      </g>
+    </g>
+  </g>
+</svg>
