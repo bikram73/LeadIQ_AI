@@ -3,6 +3,7 @@ import { NavTab, Lead } from './types';
 import { SAMPLE_PRD_LEADS } from './data/sampleLeads';
 import { rankLeads } from './services/scoringEngine';
 import { Navbar } from './components/Navbar';
+import { MobileBottomNav } from './components/MobileBottomNav';
 import { Footer } from './components/Footer';
 import { HomeScreen } from './components/HomeScreen';
 import { LeadAnalyzerScreen } from './components/LeadAnalyzerScreen';
@@ -71,10 +72,14 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#f7f9fb] text-[#191c1e] font-sans">
-      <Navbar activeTab={activeTab} onNavigate={handleNavigate} />
+    <div className="min-h-screen flex flex-col bg-[#f7f9fb] text-[#191c1e] font-sans antialiased selection:bg-[#006b2c]/20 selection:text-[#006b2c]">
+      <Navbar
+        activeTab={activeTab}
+        onNavigate={handleNavigate}
+        leadsCount={leads.length}
+      />
 
-      <main className="flex-1">
+      <main className="flex-1 pb-16 md:pb-0">
         {activeTab === 'home' && <HomeScreen onNavigate={handleNavigate} />}
 
         {activeTab === 'analyzer' && (
@@ -101,6 +106,13 @@ export default function App() {
       </main>
 
       <Footer onNavigate={handleNavigate} />
+
+      {/* Touch-Optimized Mobile Bottom Tab Navigation Bar */}
+      <MobileBottomNav
+        activeTab={activeTab}
+        onNavigate={handleNavigate}
+        leadsCount={leads.length}
+      />
     </div>
   );
 }

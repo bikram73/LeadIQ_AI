@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { NavTab, Lead, LeadInput } from '../types';
+import { Lead, LeadInput, NavTab } from '../types';
 import { analyzeSingleLeadApi, analyzeBulkLeadsApi } from '../services/apiService';
 import { SAMPLE_PRD_LEADS, getSampleEmailText } from '../data/sampleLeads';
 import { validateLeadInput } from '../services/scoringEngine';
@@ -7,79 +7,80 @@ import { parseRfc4180Csv } from '../utils/csvParser';
 
 // Intelligent extractor from raw email text
 function parseEmailContentToLead(rawText: string, fallbackLead?: Lead): LeadInput {
-  // Check if rawText matches any known sample lead
-  const matchedSample = SAMPLE_PRD_LEADS.find((s) => {
-    const nameMatch = rawText.toLowerCase().includes(s.fullName.toLowerCase());
-    const emailMatch = s.email && rawText.toLowerCase().includes(s.email.toLowerCase());
-    return nameMatch || emailMatch;
-  });
+  const text = rawText || '';
 
-  if (matchedSample) {
-    return {
-      fullName: matchedSample.fullName,
-      company: matchedSample.company,
-      industry: matchedSample.industry,
-      jobTitle: matchedSample.jobTitle,
-      companySize: matchedSample.companySize,
-      budget: matchedSample.budget,
-      location: matchedSample.location,
-      requirements: matchedSample.requirements,
-      notes: matchedSample.notes,
-      email: matchedSample.email,
-      emailContent: rawText,
-    };
-  }
+  // Extract Email
+  const emailMatch = text.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/);
+  const extractedEmail = emailMatch ? emailMatch[1] : fallbackLead?.email || '';
 
-  // Heuristic extraction for custom emails
+  // Extract Name
   let extractedName = '';
-  let extractedEmail = '';
-  const fromMatch = rawText.match(/From:\s*([^<\n]+)(?:<([^>\n]+)>)?/i);
-  if (fromMatch) {
-    extractedName = fromMatch[1]?.trim() || '';
-    extractedEmail = fromMatch[2]?.trim() || '';
-    if (!extractedEmail && extractedName.includes('@')) {
-      extractedEmail = extractedName;
-      extractedName = extractedEmail.split('@')[0];
-    }
+  const fromMatch = text.match(/(?:From|Sender|Name):\s*([A-Za-z\s]+)(?:<|\n|$)/i);
+  if (fromMatch && fromMatch[1]) {
+    extractedName = fromMatch[1].trim();
+  } else if (text.match(/Hi LeadIQ team,\s*\n*I'm\s+([A-Za-z\s]+),/i)) {
+    const m = text.match(/Hi LeadIQ team,\s*\n*I'm\s+([A-Za-z\s]+),/i);
+    if (m) extractedName = m[1].trim();
+  } else if (fallbackLead?.fullName) {
+    extractedName = fallbackLead.fullName;
+  } else {
+    extractedName = 'Inbound Prospect';
   }
 
-  const subjectMatch = rawText.match(/Subject:\s*([^\n]+)/i);
-  const subject = subjectMatch ? subjectMatch[1].trim() : '';
-
-  const budgetMatch = rawText.match(/\$[\d,]+(?:\s*(?:k|thousand|million))?/i);
-  const budget = budgetMatch ? budgetMatch[0] : (fallbackLead?.budget || 'Unspecified');
-
-  let jobTitle = fallbackLead?.jobTitle || 'Business Contact';
-  if (/\bceo\b/i.test(rawText)) jobTitle = 'CEO';
-  else if (/\bcto\b/i.test(rawText)) jobTitle = 'CTO';
-  else if (/vp(?:\s+of)?\s+([a-zA-Z\s]+)/i.test(rawText)) {
-    const m = rawText.match(/vp(?:\s+of)?\s+([a-zA-Z\s]+)/i);
-    jobTitle = m ? `VP of ${m[1].trim().split('\n')[0]}` : 'VP';
-  } else if (/head of\s+([a-zA-Z\s]+)/i.test(rawText)) {
-    const m = rawText.match(/head of\s+([a-zA-Z\s]+)/i);
-    jobTitle = m ? `Head of ${m[1].trim().split('\n')[0]}` : 'Head of Department';
+  // Extract Company
+  let extractedCompany = '';
+  const companyMatch = text.match(/(?:at|from|company:?)\s+([A-Z][A-Za-z0-9\s&,.]+?)(?:\.|\n|,|\s+and|\s+we)/i);
+  if (companyMatch && companyMatch[1] && companyMatch[1].length < 30) {
+    extractedCompany = companyMatch[1].trim();
+  } else if (fallbackLead?.company) {
+    extractedCompany = fallbackLead.company;
+  } else {
+    extractedCompany = 'Company Inc.';
   }
 
-  let company = fallbackLead?.company || 'Prospect Enterprise';
-  if (extractedEmail) {
-    const domain = extractedEmail.split('@')[1];
-    if (domain && !['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com'].includes(domain.toLowerCase())) {
-      const compName = domain.split('.')[0];
-      company = compName.charAt(0).toUpperCase() + compName.slice(1);
-    }
+  // Extract Role / Job Title
+  let extractedRole = '';
+  const roleMatch = text.match(/(?:as the|I am the|I'm the|Title:?)\s+([A-Za-z\s]+?)(?:\s+at|\s+for|,|\.|\n)/i);
+  if (roleMatch && roleMatch[1]) {
+    extractedRole = roleMatch[1].trim();
+  } else if (fallbackLead?.jobTitle) {
+    extractedRole = fallbackLead.jobTitle;
+  } else {
+    extractedRole = 'Decision Maker';
+  }
+
+  // Extract Budget
+  let extractedBudget = '';
+  const budgetMatch = text.match(/(?:budget(?:ed)?|allocated|range)?\s*(?:of|is|around|approx)?\s*(\$[\d,]+(?:\s*-\s*\$[\d,]+)?|\b\d+k\b)/i);
+  if (budgetMatch && budgetMatch[1]) {
+    extractedBudget = budgetMatch[1].trim();
+  } else if (fallbackLead?.budget) {
+    extractedBudget = fallbackLead.budget;
+  } else {
+    extractedBudget = 'Unspecified';
+  }
+
+  // Extract Requirements
+  let extractedReq = '';
+  if (text.includes('requirements:') || text.includes('Requirements:')) {
+    extractedReq = text.split(/requirements:/i)[1]?.split('\n\n')[0]?.trim() || '';
+  } else if (text.length > 30) {
+    extractedReq = text.substring(0, 200).replace(/\n+/g, ' ').trim();
+  } else {
+    extractedReq = fallbackLead?.requirements || 'Automated Sales & Lead Qualification Inquiry';
   }
 
   return {
-    fullName: extractedName || fallbackLead?.fullName || 'Prospect Contact',
-    company: company,
-    industry: fallbackLead?.industry || 'Enterprise Technology',
-    jobTitle: jobTitle,
-    companySize: fallbackLead?.companySize || '250-500',
-    budget: budget,
+    fullName: extractedName,
+    company: extractedCompany,
+    jobTitle: extractedRole,
+    industry: fallbackLead?.industry || 'General B2B',
+    companySize: fallbackLead?.companySize || '50-200',
+    budget: extractedBudget,
     location: fallbackLead?.location || 'United States',
-    requirements: subject || fallbackLead?.requirements || 'AI Solution Evaluation',
-    notes: 'Parsed from raw inbound email inquiry',
-    email: extractedEmail || fallbackLead?.email || '',
+    requirements: extractedReq,
+    notes: `Extracted from inbound email inquiry: ${text.slice(0, 100)}...`,
+    email: extractedEmail,
     emailContent: rawText,
   };
 }
@@ -96,61 +97,60 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
   onAddMultipleLeads,
 }) => {
   const [inputMode, setInputMode] = useState<'manual' | 'email' | 'csv'>('manual');
-  const [selectedSampleId, setSelectedSampleId] = useState<string>(SAMPLE_PRD_LEADS[0].id);
-
-  // Manual Form State - default to David Brown (SAMPLE_PRD_LEADS[0])
-  const [fullName, setFullName] = useState(SAMPLE_PRD_LEADS[0].fullName);
-  const [company, setCompany] = useState(SAMPLE_PRD_LEADS[0].company);
-  const [industry, setIndustry] = useState(SAMPLE_PRD_LEADS[0].industry);
-  const [jobTitle, setJobTitle] = useState(SAMPLE_PRD_LEADS[0].jobTitle);
-  const [companySize, setCompanySize] = useState(SAMPLE_PRD_LEADS[0].companySize);
-  const [budget, setBudget] = useState(SAMPLE_PRD_LEADS[0].budget);
-  const [location, setLocation] = useState(SAMPLE_PRD_LEADS[0].location);
-  const [requirements, setRequirements] = useState(SAMPLE_PRD_LEADS[0].requirements);
-  const [notes, setNotes] = useState(SAMPLE_PRD_LEADS[0].notes);
-  const [email, setEmail] = useState(SAMPLE_PRD_LEADS[0].email || '');
-
-  // Email Paste State - synchronized with David Brown
-  const [rawEmailText, setRawEmailText] = useState(
-    SAMPLE_PRD_LEADS[0].emailContent || getSampleEmailText(SAMPLE_PRD_LEADS[0])
-  );
-
-  // Analysis State
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzedLead, setAnalyzedLead] = useState<Lead | null>(null);
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string>('');
+  const [selectedSampleId, setSelectedSampleId] = useState<string>('');
+
+  // Form State
+  const [fullName, setFullName] = useState('');
+  const [company, setCompany] = useState('');
+  const [industry, setIndustry] = useState('');
+  const [jobTitle, setJobTitle] = useState('');
+  const [companySize, setCompanySize] = useState('');
+  const [budget, setBudget] = useState('');
+  const [location, setLocation] = useState('');
+  const [requirements, setRequirements] = useState('');
+  const [notes, setNotes] = useState('');
+  const [email, setEmail] = useState('');
+
+  // Raw Email Input State
+  const [rawEmailText, setRawEmailText] = useState('');
+
+  // Form Validation Errors
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const handleAnalyzeManual = async (e: React.FormEvent) => {
     e.preventDefault();
-    setStatusMessage(null);
+    setFormErrors({});
 
     const leadInput: LeadInput = {
-      fullName,
-      company,
-      industry,
-      jobTitle,
-      companySize,
-      budget,
-      location,
-      requirements,
-      notes,
-      email,
+      fullName: fullName.trim(),
+      company: company.trim(),
+      industry: industry.trim() || 'General B2B',
+      jobTitle: jobTitle.trim() || 'Business Contact',
+      companySize: companySize.trim() || '50-100',
+      budget: budget.trim() || 'Unspecified',
+      location: location.trim() || 'United States',
+      requirements: requirements.trim(),
+      notes: notes.trim(),
+      email: email.trim(),
     };
 
-    // Client-side validation per PRD TC-MAN-002 to TC-MAN-006
+    // Client-side Validation (TC-MAN-001 to TC-MAN-005)
     const validation = validateLeadInput(leadInput);
     if (!validation.isValid) {
-      const errMap: Record<string, string> = {};
+      const errObj: Record<string, string> = {};
       validation.errors.forEach((err) => {
-        errMap[err.field] = err.message;
+        errObj[err.field] = err.message;
       });
-      setFormErrors(errMap);
+      setFormErrors(errObj);
       setStatusMessage(validation.errors.map((e) => e.message).join(' '));
       return;
     }
-    setFormErrors({});
+
     setIsAnalyzing(true);
+    setStatusMessage('Evaluating lead against 7 deterministic qualification factors with AI...');
 
     try {
       const result = await analyzeSingleLeadApi(leadInput);
@@ -167,13 +167,17 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
 
   const handleAnalyzeEmail = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsAnalyzing(true);
-    setStatusMessage(null);
+    if (!rawEmailText.trim()) {
+      setStatusMessage('Please paste the email content to qualify.');
+      return;
+    }
 
-    const activeSample = SAMPLE_PRD_LEADS.find((s) => s.id === selectedSampleId);
-    const leadInput = parseEmailContentToLead(rawEmailText, activeSample);
+    setIsAnalyzing(true);
+    setStatusMessage('Extracting contact firmographics & evaluating email intent with AI...');
 
     try {
+      const fallbackSample = SAMPLE_PRD_LEADS.find((s) => s.id === selectedSampleId);
+      const leadInput = parseEmailContentToLead(rawEmailText, fallbackSample);
       const result = await analyzeSingleLeadApi(leadInput);
       setAnalyzedLead(result);
       onAddLead(result);
@@ -188,6 +192,7 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
 
   const handleLoadSampleDataset = () => {
     setIsAnalyzing(true);
+    setStatusMessage('Importing and qualifying 5 PRD Benchmark dataset leads...');
     setTimeout(() => {
       onAddMultipleLeads(SAMPLE_PRD_LEADS);
       setAnalyzedLead(SAMPLE_PRD_LEADS[0]);
@@ -205,13 +210,13 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
     const reader = new FileReader();
     reader.onload = async (event) => {
       const content = event.target?.result as string;
-      if (!content || !content.trim()) {
-        setStatusMessage('Error: CSV file appears empty.');
+      if (!content) {
+        setStatusMessage('Error: CSV file is empty.');
         setIsAnalyzing(false);
         return;
       }
 
-      // RFC-4180 Compliant Parsing (properly handles quotes, commas inside fields, multiline)
+      // RFC-4180 Compliant Parsing
       const parsedCsv = parseRfc4180Csv(content);
       if (parsedCsv.errors.length > 0 || parsedCsv.headers.length === 0) {
         setStatusMessage(`Error: ${parsedCsv.errors.join(' ') || 'Invalid CSV format'}`);
@@ -219,7 +224,7 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
         return;
       }
 
-      // Check header row for required Requirement column (TC-CSV-002)
+      // Check header row for required Requirement column
       const headers = parsedCsv.headers.map((h) => h.toLowerCase());
       const hasRequirementCol = headers.some((h) => h.includes('require'));
       if (!hasRequirementCol) {
@@ -247,7 +252,6 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
         const comp = (compKey ? row[compKey] : '')?.trim() || 'Company';
         const req = (reqKey ? row[reqKey] : '')?.trim() || 'Inquiry';
 
-        // Check for empty row
         if (!name && !comp && !req) return;
 
         if (seenNames.has(name.toLowerCase())) {
@@ -275,7 +279,7 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
         return;
       }
 
-      setStatusMessage(`Analyzing ${parsedLeads.length} leads with AI Qualification Engine...`);
+      setStatusMessage(`Evaluating ${parsedLeads.length} leads in batch...`);
       try {
         const analyzed = await analyzeBulkLeadsApi(parsedLeads);
         onAddMultipleLeads(analyzed);
@@ -285,9 +289,9 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
             duplicateCount > 0 ? `(${duplicateCount} duplicate records processed)` : ''
           }`
         );
-      } catch (err: any) {
+      } catch (err) {
         console.error(err);
-        setStatusMessage(`Error processing CSV leads: ${err.message || 'Unknown error'}`);
+        setStatusMessage('Error analyzing CSV leads in batch.');
       } finally {
         setIsAnalyzing(false);
       }
@@ -308,34 +312,35 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
     setNotes(sample.notes);
     setEmail(sample.email || '');
 
-    // Synchronize the email inquiry text to match the selected sample!
     const emailText = sample.emailContent || getSampleEmailText(sample);
     setRawEmailText(emailText);
     setStatusMessage(`✓ Selected ${sample.fullName} (${sample.company}) – Form & Email Text synchronized!`);
   };
 
   return (
-    <div className="pt-24 pb-16 px-4 md:px-10 max-w-[1280px] mx-auto">
+    <div className="pt-20 md:pt-24 pb-16 px-3 sm:px-6 md:px-10 max-w-[1280px] mx-auto">
       {/* Top Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 md:mb-8">
         <div>
           <button
             onClick={() => onNavigate('dashboard')}
-            className="inline-flex items-center gap-1 text-xs font-bold text-[#006b2c] hover:underline mb-2 cursor-pointer"
+            className="inline-flex items-center gap-1 text-xs font-bold text-[#006b2c] hover:underline mb-1 cursor-pointer py-1"
           >
             <span className="material-symbols-outlined text-sm">arrow_back</span>
-            Back to Dashboard
+            Back to Dashboard Queue
           </button>
-          <h1 className="text-3xl font-extrabold text-[#0F172A]">Lead Qualification Engine</h1>
-          <p className="text-sm text-[#64748B]">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight">
+            Lead Qualification Engine
+          </h1>
+          <p className="text-xs sm:text-sm text-[#64748B] mt-0.5">
             Submit prospect details, raw emails, or CSV files for instant AI qualification &amp; scoring.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => onNavigate('dashboard')}
-            className="px-4 py-2.5 bg-[#0F172A] text-white rounded-xl text-xs font-bold hover:bg-[#1E293B] transition-all flex items-center gap-2 cursor-pointer shadow-sm"
+            className="px-3.5 sm:px-4 py-2 sm:py-2.5 bg-[#0F172A] text-white rounded-xl text-xs font-bold hover:bg-[#1E293B] transition-all flex items-center gap-1.5 cursor-pointer shadow-xs min-h-[40px]"
           >
             <span className="material-symbols-outlined text-sm">dashboard</span>
             View Dashboard
@@ -343,58 +348,58 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
         </div>
       </div>
 
-      {/* Input Mode Selector Bar */}
-      <div className="flex items-center gap-2 p-1.5 bg-white rounded-2xl border border-[#E2E8F0] shadow-sm mb-8 max-w-xl">
+      {/* Input Mode Selector Bar (Responsive segmented control) */}
+      <div className="grid grid-cols-3 gap-1 p-1 bg-white rounded-2xl border border-[#E2E8F0] shadow-xs mb-6 max-w-xl">
         <button
           onClick={() => setInputMode('manual')}
-          className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+          className={`py-2 sm:py-2.5 px-2 sm:px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[42px] ${
             inputMode === 'manual'
-              ? 'bg-[#006b2c] text-white shadow-sm'
+              ? 'bg-[#006b2c] text-white shadow-xs'
               : 'text-[#64748B] hover:text-[#0F172A] hover:bg-[#F8FAFC]'
           }`}
         >
-          <span className="material-symbols-outlined text-base">edit_note</span>
-          Manual Form
+          <span className="material-symbols-outlined text-base sm:text-lg">edit_note</span>
+          <span className="truncate">Manual Form</span>
         </button>
 
         <button
           onClick={() => setInputMode('email')}
-          className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+          className={`py-2 sm:py-2.5 px-2 sm:px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[42px] ${
             inputMode === 'email'
-              ? 'bg-[#006b2c] text-white shadow-sm'
+              ? 'bg-[#006b2c] text-white shadow-xs'
               : 'text-[#64748B] hover:text-[#0F172A] hover:bg-[#F8FAFC]'
           }`}
         >
-          <span className="material-symbols-outlined text-base">mail</span>
-          Email Text
+          <span className="material-symbols-outlined text-base sm:text-lg">mail</span>
+          <span className="truncate">Email Text</span>
         </button>
 
         <button
           onClick={() => setInputMode('csv')}
-          className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+          className={`py-2 sm:py-2.5 px-2 sm:px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[42px] ${
             inputMode === 'csv'
-              ? 'bg-[#006b2c] text-white shadow-sm'
+              ? 'bg-[#006b2c] text-white shadow-xs'
               : 'text-[#64748B] hover:text-[#0F172A] hover:bg-[#F8FAFC]'
           }`}
         >
-          <span className="material-symbols-outlined text-base">csv</span>
-          Bulk CSV
+          <span className="material-symbols-outlined text-base sm:text-lg">csv</span>
+          <span className="truncate">Bulk CSV</span>
         </button>
       </div>
 
       {/* Quick Sample Lead Picker Chips */}
-      <div className="mb-8 bg-white p-4 md:p-5 rounded-2xl border border-[#E2E8F0] shadow-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
-          <span className="text-xs font-bold text-[#64748B] uppercase tracking-wider flex items-center gap-1.5">
+      <div className="mb-6 md:mb-8 bg-white p-3.5 sm:p-5 rounded-2xl border border-[#E2E8F0] shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2.5">
+          <span className="text-[11px] sm:text-xs font-bold text-[#64748B] uppercase tracking-wider flex items-center gap-1">
             <span className="material-symbols-outlined text-sm text-[#006b2c]">touch_app</span>
-            Quick Test - Fill Sample Lead:
+            Quick Test · Fill Benchmark Lead:
           </span>
-          <span className="text-[11px] text-[#006b2c] font-medium flex items-center gap-1">
+          <span className="text-[10px] sm:text-[11px] text-[#006b2c] font-medium flex items-center gap-1">
             <span className="material-symbols-outlined text-xs">sync</span>
-            Synchronizes with Form &amp; Email Text
+            Synchronizes Form &amp; Raw Email
           </span>
         </div>
-        <div className="flex flex-wrap gap-2.5">
+        <div className="flex overflow-x-auto pb-1 sm:pb-0 sm:flex-wrap gap-2 scrollbar-none">
           {SAMPLE_PRD_LEADS.map((sample) => {
             const isSelected = selectedSampleId === sample.id;
             return (
@@ -402,14 +407,14 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
                 key={sample.id}
                 type="button"
                 onClick={() => handlePopulateSample(sample)}
-                className={`px-3.5 py-2 rounded-xl border text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
+                className={`px-3 py-2 rounded-xl border text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer min-h-[40px] ${
                   isSelected
                     ? 'border-[#006b2c] bg-[#006b2c]/10 text-[#006b2c] ring-2 ring-[#006b2c]/20 shadow-xs'
                     : 'border-[#E2E8F0] bg-[#F8FAFC] hover:border-[#006b2c] hover:bg-[#006b2c]/5 text-[#0F172A]'
                 }`}
               >
                 <span
-                  className={`w-2 h-2 rounded-full ${
+                  className={`w-2 h-2 rounded-full shrink-0 ${
                     sample.score >= 80 ? 'bg-[#10B981]' : sample.score >= 60 ? 'bg-[#EAB308]' : 'bg-[#94A3B8]'
                   }`}
                 />
@@ -426,25 +431,25 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
         </div>
       </div>
 
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Form Area (7 cols) */}
-        <div className="lg:col-span-7 bg-white p-6 md:p-8 rounded-3xl border border-[#E2E8F0] shadow-sm">
+      {/* Main Form & Output Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
+        {/* Left Form Area (7 cols desktop) */}
+        <div className="lg:col-span-7 bg-white p-4 sm:p-6 md:p-8 rounded-2xl sm:rounded-3xl border border-[#E2E8F0] shadow-sm">
           {inputMode === 'manual' && (
-            <form onSubmit={handleAnalyzeManual} className="space-y-5">
-              <div className="flex items-center gap-3 pb-4 border-b border-[#E2E8F0]">
-                <div className="w-10 h-10 rounded-xl bg-[#006b2c]/10 flex items-center justify-center text-[#006b2c]">
+            <form onSubmit={handleAnalyzeManual} className="space-y-4 sm:space-y-5">
+              <div className="flex items-center gap-3 pb-3 sm:pb-4 border-b border-[#E2E8F0]">
+                <div className="w-10 h-10 rounded-xl bg-[#006b2c]/10 flex items-center justify-center text-[#006b2c] shrink-0">
                   <span className="material-symbols-outlined text-2xl">person_search</span>
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-[#0F172A]">Manual Lead Qualification Form</h2>
-                  <p className="text-xs text-[#64748B]">Fill in prospect firmographics and buying requirements</p>
+                  <h2 className="text-base sm:text-lg font-bold text-[#0F172A]">Manual Lead Qualification Form</h2>
+                  <p className="text-[11px] sm:text-xs text-[#64748B]">Fill in prospect firmographics and requirements</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-[#64748B] mb-1.5">
+                  <label className="block text-[11px] sm:text-xs font-bold uppercase tracking-wider text-[#64748B] mb-1">
                     Full Name *
                   </label>
                   <input
@@ -455,7 +460,7 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
                       if (formErrors.fullName) setFormErrors((p) => ({ ...p, fullName: '' }));
                     }}
                     placeholder="e.g. David Brown"
-                    className={`w-full px-4 py-2.5 rounded-xl border text-xs font-medium text-[#0F172A] ${
+                    className={`w-full px-3.5 py-2.5 rounded-xl border text-sm sm:text-xs font-medium text-[#0F172A] bg-white ${
                       formErrors.fullName ? 'border-red-500 bg-red-50/50 ring-1 ring-red-500' : 'border-[#E2E8F0]'
                     }`}
                   />
@@ -468,7 +473,7 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-[#64748B] mb-1.5">
+                  <label className="block text-[11px] sm:text-xs font-bold uppercase tracking-wider text-[#64748B] mb-1">
                     Work Email
                   </label>
                   <input
@@ -479,7 +484,7 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
                       if (formErrors.email) setFormErrors((p) => ({ ...p, email: '' }));
                     }}
                     placeholder="david.brown@buildpro.com"
-                    className={`w-full px-4 py-2.5 rounded-xl border text-xs font-medium text-[#0F172A] ${
+                    className={`w-full px-3.5 py-2.5 rounded-xl border text-sm sm:text-xs font-medium text-[#0F172A] bg-white ${
                       formErrors.email ? 'border-red-500 bg-red-50/50 ring-1 ring-red-500' : 'border-[#E2E8F0]'
                     }`}
                   />
@@ -492,9 +497,9 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-[#64748B] mb-1.5">
+                  <label className="block text-[11px] sm:text-xs font-bold uppercase tracking-wider text-[#64748B] mb-1">
                     Company Name *
                   </label>
                   <input
@@ -505,7 +510,7 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
                       if (formErrors.company) setFormErrors((p) => ({ ...p, company: '' }));
                     }}
                     placeholder="e.g. BuildPro"
-                    className={`w-full px-4 py-2.5 rounded-xl border text-xs font-medium text-[#0F172A] ${
+                    className={`w-full px-3.5 py-2.5 rounded-xl border text-sm sm:text-xs font-medium text-[#0F172A] bg-white ${
                       formErrors.company ? 'border-red-500 bg-red-50/50 ring-1 ring-red-500' : 'border-[#E2E8F0]'
                     }`}
                   />
@@ -518,7 +523,7 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-[#64748B] mb-1.5">
+                  <label className="block text-[11px] sm:text-xs font-bold uppercase tracking-wider text-[#64748B] mb-1">
                     Job Title / Role
                   </label>
                   <input
@@ -526,14 +531,14 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
                     value={jobTitle}
                     onChange={(e) => setJobTitle(e.target.value)}
                     placeholder="e.g. CEO or VP of Operations"
-                    className="w-full px-4 py-2.5 rounded-xl border border-[#E2E8F0] text-xs font-medium text-[#0F172A]"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#E2E8F0] text-sm sm:text-xs font-medium text-[#0F172A] bg-white"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-[#64748B] mb-1.5">
+                  <label className="block text-[11px] sm:text-xs font-bold uppercase tracking-wider text-[#64748B] mb-1">
                     Industry
                   </label>
                   <input
@@ -541,12 +546,12 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
                     value={industry}
                     onChange={(e) => setIndustry(e.target.value)}
                     placeholder="Construction / Software"
-                    className="w-full px-4 py-2.5 rounded-xl border border-[#E2E8F0] text-xs font-medium text-[#0F172A]"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#E2E8F0] text-sm sm:text-xs font-medium text-[#0F172A] bg-white"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-[#64748B] mb-1.5">
+                  <label className="block text-[11px] sm:text-xs font-bold uppercase tracking-wider text-[#64748B] mb-1">
                     Company Size
                   </label>
                   <input
@@ -554,12 +559,12 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
                     value={companySize}
                     onChange={(e) => setCompanySize(e.target.value)}
                     placeholder="500-1000 employees"
-                    className="w-full px-4 py-2.5 rounded-xl border border-[#E2E8F0] text-xs font-medium text-[#0F172A]"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#E2E8F0] text-sm sm:text-xs font-medium text-[#0F172A] bg-white"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-[#64748B] mb-1.5">
+                  <label className="block text-[11px] sm:text-xs font-bold uppercase tracking-wider text-[#64748B] mb-1">
                     Budget
                   </label>
                   <input
@@ -567,13 +572,13 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
                     value={budget}
                     onChange={(e) => setBudget(e.target.value)}
                     placeholder="$120,000 / Unknown"
-                    className="w-full px-4 py-2.5 rounded-xl border border-[#E2E8F0] text-xs font-medium text-[#0F172A]"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#E2E8F0] text-sm sm:text-xs font-medium text-[#0F172A] bg-white"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-[#64748B] mb-1.5">
+                <label className="block text-[11px] sm:text-xs font-bold uppercase tracking-wider text-[#64748B] mb-1">
                   Requirement Details *
                 </label>
                 <textarea
@@ -584,7 +589,7 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
                     if (formErrors.requirements) setFormErrors((p) => ({ ...p, requirements: '' }));
                   }}
                   placeholder="e.g. Enterprise AI Customer Assistant for sales & support automation"
-                  className={`w-full px-4 py-2.5 rounded-xl border text-xs font-medium text-[#0F172A] resize-none ${
+                  className={`w-full px-3.5 py-2.5 rounded-xl border text-sm sm:text-xs font-medium text-[#0F172A] bg-white resize-none ${
                     formErrors.requirements ? 'border-red-500 bg-red-50/50 ring-1 ring-red-500' : 'border-[#E2E8F0]'
                   }`}
                 />
@@ -597,7 +602,7 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-[#64748B] mb-1.5">
+                <label className="block text-[11px] sm:text-xs font-bold uppercase tracking-wider text-[#64748B] mb-1">
                   Timeline &amp; Strategic Notes
                 </label>
                 <textarea
@@ -605,24 +610,24 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="e.g. CEO requested demo. Need implementation in 2 weeks."
-                  className="w-full px-4 py-2.5 rounded-xl border border-[#E2E8F0] text-xs font-medium text-[#0F172A] resize-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#E2E8F0] text-sm sm:text-xs font-medium text-[#0F172A] bg-white resize-none"
                 />
               </div>
 
-              <div className="pt-2 flex gap-3">
+              <div className="pt-2">
                 <button
                   type="submit"
                   disabled={isAnalyzing}
-                  className="flex-1 primary-gradient text-white py-3 px-6 rounded-xl font-bold text-xs shadow-md hover:opacity-90 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="w-full primary-gradient text-white py-3.5 px-6 rounded-xl font-bold text-xs sm:text-sm shadow-md hover:opacity-90 active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 min-h-[48px]"
                 >
                   {isAnalyzing ? (
                     <>
-                      <span className="material-symbols-outlined text-base animate-spin">refresh</span>
+                      <span className="material-symbols-outlined text-lg animate-spin">refresh</span>
                       Analyzing Lead with AI...
                     </>
                   ) : (
                     <>
-                      <span className="material-symbols-outlined text-base">auto_awesome</span>
+                      <span className="material-symbols-outlined text-lg">auto_awesome</span>
                       Qualify Lead with AI
                     </>
                   )}
@@ -632,35 +637,35 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
           )}
 
           {inputMode === 'email' && (
-            <form onSubmit={handleAnalyzeEmail} className="space-y-5">
-              <div className="flex items-center gap-3 pb-4 border-b border-[#E2E8F0]">
-                <div className="w-10 h-10 rounded-xl bg-[#006b2c]/10 flex items-center justify-center text-[#006b2c]">
+            <form onSubmit={handleAnalyzeEmail} className="space-y-4 sm:space-y-5">
+              <div className="flex items-center gap-3 pb-3 sm:pb-4 border-b border-[#E2E8F0]">
+                <div className="w-10 h-10 rounded-xl bg-[#006b2c]/10 flex items-center justify-center text-[#006b2c] shrink-0">
                   <span className="material-symbols-outlined text-2xl">mail</span>
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-[#0F172A]">Raw Email Text Analyzer</h2>
-                  <p className="text-xs text-[#64748B]">Paste any raw customer email inquiry to extract intent &amp; score automatically</p>
+                  <h2 className="text-base sm:text-lg font-bold text-[#0F172A]">Raw Email Text Analyzer</h2>
+                  <p className="text-[11px] sm:text-xs text-[#64748B]">Paste any raw customer email inquiry to extract intent &amp; score</p>
                 </div>
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-[#64748B]">
+                  <label className="block text-[11px] sm:text-xs font-bold uppercase tracking-wider text-[#64748B]">
                     Raw Email Inquiry Content *
                   </label>
                   {selectedSampleId && (
-                    <span className="text-[11px] font-semibold text-[#006b2c] bg-[#006b2c]/10 px-2 py-0.5 rounded-md flex items-center gap-1">
+                    <span className="text-[10px] sm:text-[11px] font-semibold text-[#006b2c] bg-[#006b2c]/10 px-2 py-0.5 rounded-md flex items-center gap-1">
                       <span className="material-symbols-outlined text-xs">sync</span>
-                      Synced: {SAMPLE_PRD_LEADS.find((s) => s.id === selectedSampleId)?.fullName} ({SAMPLE_PRD_LEADS.find((s) => s.id === selectedSampleId)?.company})
+                      Synced Sample
                     </span>
                   )}
                 </div>
                 <textarea
-                  rows={10}
+                  rows={8}
                   value={rawEmailText}
                   onChange={(e) => setRawEmailText(e.target.value)}
                   placeholder="Paste inbound sales email inquiry text here..."
-                  className="w-full p-4 rounded-xl border border-[#E2E8F0] text-xs font-mono text-[#0F172A] bg-[#F8FAFC] leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-[#006b2c]"
+                  className="w-full p-3.5 sm:p-4 rounded-xl border border-[#E2E8F0] text-xs font-mono text-[#0F172A] bg-[#F8FAFC] leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-[#006b2c]"
                   required
                 />
               </div>
@@ -668,16 +673,16 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
               <button
                 type="submit"
                 disabled={isAnalyzing}
-                className="w-full primary-gradient text-white py-3.5 px-6 rounded-xl font-bold text-xs shadow-md hover:opacity-90 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                className="w-full primary-gradient text-white py-3.5 px-6 rounded-xl font-bold text-xs sm:text-sm shadow-md hover:opacity-90 active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 min-h-[48px]"
               >
                 {isAnalyzing ? (
                   <>
-                    <span className="material-symbols-outlined text-base animate-spin">refresh</span>
+                    <span className="material-symbols-outlined text-lg animate-spin">refresh</span>
                     Parsing Email with AI...
                   </>
                 ) : (
                   <>
-                    <span className="material-symbols-outlined text-base">psychology</span>
+                    <span className="material-symbols-outlined text-lg">psychology</span>
                     Analyze Inbound Email with AI
                   </>
                 )}
@@ -686,36 +691,38 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
           )}
 
           {inputMode === 'csv' && (
-            <div className="space-y-6">
-              <div className="flex items-center gap-3 pb-4 border-b border-[#E2E8F0]">
-                <div className="w-10 h-10 rounded-xl bg-[#006b2c]/10 flex items-center justify-center text-[#006b2c]">
+            <div className="space-y-4 sm:space-y-6">
+              <div className="flex items-center gap-3 pb-3 sm:pb-4 border-b border-[#E2E8F0]">
+                <div className="w-10 h-10 rounded-xl bg-[#006b2c]/10 flex items-center justify-center text-[#006b2c] shrink-0">
                   <span className="material-symbols-outlined text-2xl">csv</span>
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-[#0F172A]">Batch Bulk Lead Import (CSV)</h2>
-                  <p className="text-xs text-[#64748B]">Upload CSV spreadsheet or import sample dataset instantly</p>
+                  <h2 className="text-base sm:text-lg font-bold text-[#0F172A]">Batch Bulk Lead Import (CSV)</h2>
+                  <p className="text-[11px] sm:text-xs text-[#64748B]">Upload CSV spreadsheet or import sample dataset instantly</p>
                 </div>
               </div>
 
-              <div className="border-2 border-dashed border-[#CBD5E1] rounded-2xl p-8 text-center hover:border-[#006b2c] transition-colors bg-[#F8FAFC]">
+              <div className="border-2 border-dashed border-[#CBD5E1] rounded-2xl p-6 sm:p-8 text-center hover:border-[#006b2c] transition-colors bg-[#F8FAFC]">
                 <span className="material-symbols-outlined text-4xl text-[#006b2c] mb-2">cloud_upload</span>
                 <h3 className="text-sm font-bold text-[#0F172A] mb-1">Upload Lead CSV File</h3>
-                <p className="text-xs text-[#64748B] mb-4">Columns supported: Name, Company, Industry, Job Title, Budget, Requirements, Notes</p>
-                <label className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-[#E2E8F0] rounded-xl text-xs font-bold text-[#0F172A] hover:bg-[#F8FAFC] shadow-sm cursor-pointer transition-all">
+                <p className="text-xs text-[#64748B] mb-4 max-w-sm mx-auto">
+                  Columns supported: Name, Company, Industry, Job Title, Budget, Requirements, Notes
+                </p>
+                <label className="inline-flex items-center gap-2 px-5 py-3 bg-white border border-[#E2E8F0] rounded-xl text-xs font-bold text-[#0F172A] hover:bg-[#F8FAFC] shadow-xs cursor-pointer transition-all min-h-[44px]">
                   <span className="material-symbols-outlined text-sm">folder_open</span>
                   Select CSV File
                   <input type="file" accept=".csv" onChange={handleCsvFileUpload} className="hidden" />
                 </label>
               </div>
 
-              <div className="p-4 bg-[#006b2c]/5 rounded-2xl border border-[#006b2c]/20 flex items-center justify-between">
+              <div className="p-4 bg-[#006b2c]/5 rounded-2xl border border-[#006b2c]/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <h4 className="text-xs font-bold text-[#0F172A]">Instant PRD Benchmark Dataset</h4>
                   <p className="text-[11px] text-[#64748B]">Load 5 sample leads (David Brown, John Carter, Michael Ross, Sarah Lee, Emma Wilson)</p>
                 </div>
                 <button
                   onClick={handleLoadSampleDataset}
-                  className="px-4 py-2 bg-[#006b2c] text-white rounded-xl text-xs font-bold hover:bg-[#005221] transition-colors cursor-pointer"
+                  className="px-4 py-2.5 bg-[#006b2c] text-white rounded-xl text-xs font-bold hover:bg-[#005221] transition-colors cursor-pointer whitespace-nowrap min-h-[40px]"
                 >
                   Load Dataset
                 </button>
@@ -725,48 +732,48 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
 
           {statusMessage && (
             <div className="mt-4 p-3 bg-[#10B981]/15 text-[#006b2c] rounded-xl border border-[#10B981]/30 text-xs font-bold flex items-center gap-2">
-              <span className="material-symbols-outlined text-base">check_circle</span>
-              <span>{statusMessage}</span>
+              <span className="material-symbols-outlined text-base shrink-0">check_circle</span>
+              <span className="leading-tight">{statusMessage}</span>
             </div>
           )}
         </div>
 
-        {/* Right Output Inspection Card (5 cols) */}
-        <div className="lg:col-span-5 bg-white p-6 md:p-8 rounded-3xl border border-[#E2E8F0] shadow-sm flex flex-col justify-between">
+        {/* Right Output Inspection Card (5 cols desktop) */}
+        <div className="lg:col-span-5 bg-white p-4 sm:p-6 md:p-8 rounded-2xl sm:rounded-3xl border border-[#E2E8F0] shadow-sm flex flex-col justify-between">
           {analyzedLead ? (
             <div>
-              <div className="flex items-center justify-between pb-4 mb-4 border-b border-[#E2E8F0]">
-                <div className="flex items-center gap-3">
-                  <div className={`w-11 h-11 rounded-2xl ${analyzedLead.avatarBg} ${analyzedLead.avatarTextColor} flex items-center justify-center font-extrabold text-sm`}>
+              <div className="flex items-center justify-between pb-3 sm:pb-4 mb-4 border-b border-[#E2E8F0]">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-2xl ${analyzedLead.avatarBg} ${analyzedLead.avatarTextColor} flex items-center justify-center font-extrabold text-sm shrink-0`}>
                     {analyzedLead.avatarInitials}
                   </div>
-                  <div>
-                    <h3 className="text-base font-bold text-[#0F172A]">{analyzedLead.fullName}</h3>
-                    <p className="text-xs text-[#64748B]">{analyzedLead.jobTitle} at <span className="font-semibold text-[#0F172A]">{analyzedLead.company}</span></p>
+                  <div className="min-w-0">
+                    <h3 className="text-sm sm:text-base font-bold text-[#0F172A] truncate">{analyzedLead.fullName}</h3>
+                    <p className="text-xs text-[#64748B] truncate">{analyzedLead.jobTitle} at <span className="font-semibold text-[#0F172A]">{analyzedLead.company}</span></p>
                   </div>
                 </div>
 
-                <div className="text-right">
+                <div className="text-right shrink-0">
                   <span className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider block">AI Lead Score</span>
-                  <span className="text-3xl font-extrabold text-[#006b2c]">{analyzedLead.score}/100</span>
+                  <span className="text-2xl sm:text-3xl font-extrabold text-[#006b2c]">{analyzedLead.score}/100</span>
                 </div>
               </div>
 
               {/* Badges Row */}
-              <div className="flex flex-wrap gap-2 mb-6">
-                <span className={`px-3 py-1 rounded-full text-xs font-extrabold ${analyzedLead.tier === 'Hot' ? 'bg-[#006b2c]/15 text-[#006b2c]' : analyzedLead.tier === 'Warm' ? 'bg-[#10B981]/15 text-[#10B981]' : 'bg-[#94A3B8]/15 text-[#64748B]'}`}>
+              <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-4 sm:mb-6">
+                <span className={`px-2.5 sm:px-3 py-1 rounded-full text-xs font-extrabold ${analyzedLead.tier === 'Hot' ? 'bg-[#006b2c]/15 text-[#006b2c]' : analyzedLead.tier === 'Warm' ? 'bg-[#10B981]/15 text-[#10B981]' : 'bg-[#94A3B8]/15 text-[#64748B]'}`}>
                   TIER: {analyzedLead.tier.toUpperCase()}
                 </span>
-                <span className="px-3 py-1 rounded-full text-xs font-bold bg-[#F1F5F9] text-[#0F172A]">
+                <span className="px-2.5 sm:px-3 py-1 rounded-full text-xs font-bold bg-[#F1F5F9] text-[#0F172A]">
                   Fit: {analyzedLead.fitScore}
                 </span>
-                <span className="px-3 py-1 rounded-full text-xs font-bold bg-[#F1F5F9] text-[#0F172A]">
+                <span className="px-2.5 sm:px-3 py-1 rounded-full text-xs font-bold bg-[#F1F5F9] text-[#0F172A]">
                   Intent: {analyzedLead.intentScore}
                 </span>
               </div>
 
               {/* AI Summary */}
-              <div className="p-4 bg-[#F8FAFC] rounded-2xl border border-[#E2E8F0] mb-5">
+              <div className="p-3.5 sm:p-4 bg-[#F8FAFC] rounded-2xl border border-[#E2E8F0] mb-4">
                 <span className="text-xs font-bold text-[#006b2c] uppercase tracking-wider block mb-1">
                   AI Summary
                 </span>
@@ -774,7 +781,7 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
               </div>
 
               {/* Reasoning Bullets */}
-              <div className="mb-5">
+              <div className="mb-4">
                 <span className="text-xs font-bold text-[#64748B] uppercase tracking-wider block mb-2">
                   AI Evaluation Reasoning
                 </span>
@@ -789,7 +796,7 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
               </div>
 
               {/* Next Recommended Action */}
-              <div className="p-4 bg-[#006b2c]/10 rounded-2xl border border-[#006b2c]/20 mb-6">
+              <div className="p-3.5 sm:p-4 bg-[#006b2c]/10 rounded-2xl border border-[#006b2c]/20 mb-5">
                 <span className="text-xs font-bold text-[#006b2c] uppercase tracking-wider block mb-1">
                   Recommended Action
                 </span>
@@ -797,29 +804,29 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
               </div>
 
               {/* 7 Factor Breakdown */}
-              <div>
-                <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider block mb-2">
+              <div className="space-y-2">
+                <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider block">
                   7-Factor Weight Breakdown
                 </span>
-                <div className="space-y-2 text-xs">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[#64748B]">Buying Intent (25%)</span>
+                <div className="space-y-1.5 text-xs">
+                  <div className="flex justify-between items-center text-[#64748B]">
+                    <span>Buying Intent (25%)</span>
                     <span className="font-bold text-[#0F172A]">{analyzedLead.factorBreakdown.buyingIntent}/25</span>
                   </div>
                   <div className="w-full bg-[#F1F5F9] h-1.5 rounded-full overflow-hidden">
                     <div className="bg-[#006b2c] h-full" style={{ width: `${(analyzedLead.factorBreakdown.buyingIntent / 25) * 100}%` }} />
                   </div>
 
-                  <div className="flex justify-between items-center">
-                    <span className="text-[#64748B]">Budget Availability (20%)</span>
+                  <div className="flex justify-between items-center text-[#64748B]">
+                    <span>Budget Availability (20%)</span>
                     <span className="font-bold text-[#0F172A]">{analyzedLead.factorBreakdown.budgetAvailability}/20</span>
                   </div>
                   <div className="w-full bg-[#F1F5F9] h-1.5 rounded-full overflow-hidden">
                     <div className="bg-[#10B981] h-full" style={{ width: `${(analyzedLead.factorBreakdown.budgetAvailability / 20) * 100}%` }} />
                   </div>
 
-                  <div className="flex justify-between items-center">
-                    <span className="text-[#64748B]">Decision Maker (15%)</span>
+                  <div className="flex justify-between items-center text-[#64748B]">
+                    <span>Decision Maker (15%)</span>
                     <span className="font-bold text-[#0F172A]">{analyzedLead.factorBreakdown.decisionMaker}/15</span>
                   </div>
                   <div className="w-full bg-[#F1F5F9] h-1.5 rounded-full overflow-hidden">
@@ -829,9 +836,9 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
               </div>
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center text-center py-16 text-[#94A3B8]">
-              <div className="w-16 h-16 rounded-3xl bg-[#F8FAFC] border border-[#E2E8F0] flex items-center justify-center text-[#006b2c] mb-4">
-                <span className="material-symbols-outlined text-3xl">auto_awesome</span>
+            <div className="flex flex-col items-center justify-center text-center py-12 sm:py-16 text-[#94A3B8]">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-3xl bg-[#F8FAFC] border border-[#E2E8F0] flex items-center justify-center text-[#006b2c] mb-3 sm:mb-4">
+                <span className="material-symbols-outlined text-2xl sm:text-3xl">auto_awesome</span>
               </div>
               <h3 className="text-base font-bold text-[#0F172A] mb-1">Ready for Qualification</h3>
               <p className="text-xs text-[#64748B] max-w-xs mb-4">
@@ -839,7 +846,7 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
               </p>
               <button
                 onClick={() => handlePopulateSample(SAMPLE_PRD_LEADS[0])}
-                className="px-4 py-2 bg-[#006b2c]/10 text-[#006b2c] rounded-xl text-xs font-bold hover:bg-[#006b2c]/20 transition-colors cursor-pointer"
+                className="px-4 py-2 bg-[#006b2c]/10 text-[#006b2c] rounded-xl text-xs font-bold hover:bg-[#006b2c]/20 transition-colors cursor-pointer min-h-[40px]"
               >
                 Populate David Brown (CEO)
               </button>
@@ -847,10 +854,10 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
           )}
 
           {analyzedLead && (
-            <div className="pt-6 border-t border-[#E2E8F0] mt-6">
+            <div className="pt-5 border-t border-[#E2E8F0] mt-5">
               <button
                 onClick={() => onNavigate('dashboard')}
-                className="w-full primary-gradient text-white py-3 rounded-xl font-bold text-xs shadow-md hover:opacity-90 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full primary-gradient text-white py-3.5 rounded-xl font-bold text-xs sm:text-sm shadow-md hover:opacity-90 active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
               >
                 <span className="material-symbols-outlined text-base">format_list_bulleted</span>
                 View in Ranked Dashboard Queue
