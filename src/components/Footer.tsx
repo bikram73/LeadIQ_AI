@@ -23,7 +23,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             <span className="font-bold text-lg text-[#191c1e]">LeadIQ AI</span>
           </div>
           <p className="text-sm text-[#64748B]">
-            © 2024 LeadIQ AI. All rights reserved.
+            © 2026 LeadIQ AI. All rights reserved.
           </p>
         </div>
 
