@@ -1,22 +1,33 @@
-import React, { useState } from 'react';
-import { Lead, NavTab, LeadTier } from '../types';
+import React, { useState, useEffect } from 'react';
+import { Lead, NavTab } from '../types';
 
 interface DashboardScreenProps {
   leads: Lead[];
   onNavigate: (tab: NavTab) => void;
   onAddLead: (lead: Lead) => void;
   onResetLeads: () => void;
+  onLoadDemoLeads?: () => void;
 }
 
 export const DashboardScreen: React.FC<DashboardScreenProps> = ({
   leads,
   onNavigate,
   onResetLeads,
+  onLoadDemoLeads,
 }) => {
-  const [selectedLead, setSelectedLead] = useState<Lead>(leads[0] || null);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(leads[0] || null);
   const [filterTier, setFilterTier] = useState<string>('ALL');
   const [sortBy, setSortBy] = useState<'highest' | 'lowest'>('highest');
   const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // Keep selectedLead synchronized with leads list
+  useEffect(() => {
+    if (leads.length === 0) {
+      setSelectedLead(null);
+    } else if (!selectedLead || !leads.some((l) => l.id === selectedLead.id)) {
+      setSelectedLead(leads[0]);
+    }
+  }, [leads, selectedLead]);
 
   // Filter & sort leads
   const filteredLeads = leads
@@ -94,6 +105,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
   };
 
   const handleExportJson = () => {
+    if (leads.length === 0) return;
     const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(leads, null, 2));
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute('href', dataStr);
@@ -104,6 +116,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
   };
 
   const handleExportPdf = () => {
+    if (leads.length === 0) return;
     window.print();
   };
 
@@ -118,7 +131,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <button
             onClick={() => onNavigate('analyzer')}
             className="primary-gradient text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-md hover:opacity-90 transition-all flex items-center gap-2 cursor-pointer"
@@ -127,37 +140,66 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
             Qualify New Lead
           </button>
 
+          {onLoadDemoLeads && (
+            <button
+              onClick={onLoadDemoLeads}
+              title="Load 5 PRD Benchmark Sample Leads"
+              className="px-3.5 py-2.5 bg-white border border-[#E2E8F0] rounded-xl text-xs font-bold text-[#006b2c] hover:bg-[#006b2c]/5 shadow-sm transition-colors flex items-center gap-1.5 cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-base">science</span>
+              Load Sample Leads
+            </button>
+          )}
+
           <button
             onClick={handleExportCsv}
-            className="px-4 py-2.5 bg-white border border-[#E2E8F0] rounded-xl text-xs font-bold text-[#0F172A] hover:bg-[#F8FAFC] shadow-sm transition-colors flex items-center gap-2 cursor-pointer"
+            disabled={leads.length === 0}
+            className={`px-3.5 py-2.5 bg-white border rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 ${
+              leads.length === 0
+                ? 'opacity-40 cursor-not-allowed border-[#E2E8F0] text-[#94A3B8]'
+                : 'border-[#E2E8F0] text-[#0F172A] hover:bg-[#F8FAFC] shadow-sm cursor-pointer'
+            }`}
           >
             <span className="material-symbols-outlined text-base">download</span>
-            Export CSV
+            CSV
           </button>
 
           <button
             onClick={handleExportJson}
-            className="px-4 py-2.5 bg-white border border-[#E2E8F0] rounded-xl text-xs font-bold text-[#0F172A] hover:bg-[#F8FAFC] shadow-sm transition-colors flex items-center gap-2 cursor-pointer"
+            disabled={leads.length === 0}
+            className={`px-3.5 py-2.5 bg-white border rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 ${
+              leads.length === 0
+                ? 'opacity-40 cursor-not-allowed border-[#E2E8F0] text-[#94A3B8]'
+                : 'border-[#E2E8F0] text-[#0F172A] hover:bg-[#F8FAFC] shadow-sm cursor-pointer'
+            }`}
           >
             <span className="material-symbols-outlined text-base">code</span>
-            Export JSON
+            JSON
           </button>
 
           <button
             onClick={handleExportPdf}
-            className="px-4 py-2.5 bg-white border border-[#E2E8F0] rounded-xl text-xs font-bold text-[#0F172A] hover:bg-[#F8FAFC] shadow-sm transition-colors flex items-center gap-2 cursor-pointer"
+            disabled={leads.length === 0}
+            className={`px-3.5 py-2.5 bg-white border rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 ${
+              leads.length === 0
+                ? 'opacity-40 cursor-not-allowed border-[#E2E8F0] text-[#94A3B8]'
+                : 'border-[#E2E8F0] text-[#0F172A] hover:bg-[#F8FAFC] shadow-sm cursor-pointer'
+            }`}
           >
             <span className="material-symbols-outlined text-base">picture_as_pdf</span>
-            Print / PDF
+            PDF
           </button>
 
-          <button
-            onClick={onResetLeads}
-            title="Reset to PRD benchmark dataset"
-            className="px-3 py-2.5 bg-white border border-[#E2E8F0] rounded-xl text-xs font-semibold text-[#64748B] hover:bg-[#F8FAFC] transition-colors cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-base">restart_alt</span>
-          </button>
+          {leads.length > 0 && (
+            <button
+              onClick={onResetLeads}
+              title="Clear all stored session leads (Reset to 0)"
+              className="px-3 py-2.5 bg-white border border-[#FCA5A5] text-[#DC2626] rounded-xl text-xs font-semibold hover:bg-[#FEF2F2] transition-colors flex items-center gap-1 cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-base">delete_sweep</span>
+              Clear All
+            </button>
+          )}
         </div>
       </div>
 
@@ -173,7 +215,9 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
             </span>
           </div>
           <h3 className="text-3xl font-extrabold text-[#0F172A]">{totalLeads}</h3>
-          <p className="text-xs font-semibold text-[#006b2c] mt-1">Real-time Session Queue</p>
+          <p className="text-xs font-semibold text-[#006b2c] mt-1">
+            {totalLeads > 0 ? 'Active in Browser Storage' : 'No leads analyzed yet'}
+          </p>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-[#E2E8F0] shadow-sm">
@@ -187,7 +231,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
           </div>
           <h3 className="text-3xl font-extrabold text-[#0F172A]">{hotLeadsCount}</h3>
           <p className="text-xs text-[#006b2c] font-bold mt-1">
-            {totalLeads > 0 ? Math.round((hotLeadsCount / totalLeads) * 100) : 0}% High Intent Ratio
+            {totalLeads > 0 ? `${Math.round((hotLeadsCount / totalLeads) * 100)}% High Intent Ratio` : '0% High Intent'}
           </p>
         </div>
 
@@ -201,7 +245,9 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
             </span>
           </div>
           <h3 className="text-3xl font-extrabold text-[#0F172A]">{warmLeadsCount}</h3>
-          <p className="text-xs text-[#64748B] mt-1">Nurture Opportunity</p>
+          <p className="text-xs text-[#64748B] mt-1">
+            {totalLeads > 0 ? `${Math.round((warmLeadsCount / totalLeads) * 100)}% Nurture Pipeline` : 'Nurture Opportunity'}
+          </p>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-[#E2E8F0] shadow-sm">
@@ -214,7 +260,9 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
             </span>
           </div>
           <h3 className="text-3xl font-extrabold text-[#0F172A]">{avgScore}</h3>
-          <p className="text-xs text-[#10B981] font-semibold mt-1">Quality Benchmark</p>
+          <p className="text-xs text-[#10B981] font-semibold mt-1">
+            {totalLeads > 0 ? 'Deterministic 7-Factor Avg' : '0 Benchmark'}
+          </p>
         </div>
       </div>
 
@@ -354,8 +402,39 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
                   })
                 ) : (
                   <tr>
-                    <td colSpan={5} className="py-12 text-center text-xs text-[#64748B]">
-                      No leads matching filter criteria.
+                    <td colSpan={5} className="py-16 text-center">
+                      <div className="max-w-md mx-auto flex flex-col items-center">
+                        <div className="w-14 h-14 bg-[#006b2c]/10 text-[#006b2c] rounded-2xl flex items-center justify-center mb-3">
+                          <span className="material-symbols-outlined text-2xl">leaderboard</span>
+                        </div>
+                        <h4 className="text-base font-bold text-[#0F172A] mb-1">
+                          {leads.length === 0 ? 'No Qualified Leads Yet' : 'No Matching Leads'}
+                        </h4>
+                        <p className="text-xs text-[#64748B] leading-relaxed mb-4">
+                          {leads.length === 0
+                            ? 'Your qualification queue is initially empty (0). Analyze an inbound lead via manual form, raw email, or CSV import to view live scoring.'
+                            : 'Try adjusting your tier filter or search keywords.'}
+                        </p>
+                        {leads.length === 0 && (
+                          <div className="flex flex-wrap items-center justify-center gap-3">
+                            <button
+                              onClick={() => onNavigate('analyzer')}
+                              className="primary-gradient text-white px-4 py-2 rounded-xl text-xs font-bold shadow-md hover:opacity-90 transition-all flex items-center gap-1.5 cursor-pointer"
+                            >
+                              <span className="material-symbols-outlined text-sm">psychology</span>
+                              Qualify First Lead
+                            </button>
+                            {onLoadDemoLeads && (
+                              <button
+                                onClick={onLoadDemoLeads}
+                                className="px-4 py-2 bg-white border border-[#E2E8F0] text-[#006b2c] rounded-xl text-xs font-bold hover:bg-[#F8FAFC] transition-colors cursor-pointer"
+                              >
+                                Load Sample Leads
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 )}
@@ -464,21 +543,35 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
                   <div className="bg-[#006b5f] h-full" style={{ width: `${(selectedLead.factorBreakdown.decisionMaker / 15) * 100}%` }} />
                 </div>
               </div>
+
+              <div className="pt-6 border-t border-[#E2E8F0] mt-6 flex gap-3">
+                <button
+                  onClick={() => alert(`Contacting ${selectedLead.fullName} at ${selectedLead.company}...`)}
+                  className="flex-1 primary-gradient text-white py-3 rounded-xl font-bold text-xs shadow-md hover:opacity-90 transition-all cursor-pointer"
+                >
+                  Execute Action ({selectedLead.nextAction})
+                </button>
+              </div>
             </div>
           ) : (
-            <div className="py-12 text-center text-xs text-[#64748B]">
-              Select a lead from the queue to inspect details.
-            </div>
-          )}
-
-          {selectedLead && (
-            <div className="pt-6 border-t border-[#E2E8F0] mt-6 flex gap-3">
-              <button
-                onClick={() => alert(`Contacting ${selectedLead.fullName} at ${selectedLead.company}...`)}
-                className="flex-1 primary-gradient text-white py-3 rounded-xl font-bold text-xs shadow-md hover:opacity-90 transition-all cursor-pointer"
-              >
-                Execute Action ({selectedLead.nextAction})
-              </button>
+            <div className="py-16 text-center flex flex-col items-center justify-center my-auto">
+              <div className="w-16 h-16 bg-[#F8FAFC] border border-[#E2E8F0] text-[#94A3B8] rounded-2xl flex items-center justify-center mb-3">
+                <span className="material-symbols-outlined text-3xl">insights</span>
+              </div>
+              <h4 className="text-sm font-bold text-[#0F172A] mb-1">No Lead Selected</h4>
+              <p className="text-xs text-[#64748B] max-w-xs leading-relaxed mb-4">
+                {leads.length === 0
+                  ? 'Qualify your first lead to see 7-factor deterministic score, AI reasoning, and recommended sales actions.'
+                  : 'Click on any lead in the table to inspect its 7-factor evaluation breakdown.'}
+              </p>
+              {leads.length === 0 && (
+                <button
+                  onClick={() => onNavigate('analyzer')}
+                  className="px-4 py-2 primary-gradient text-white rounded-xl text-xs font-bold shadow-sm hover:opacity-90 transition-all cursor-pointer"
+                >
+                  Start Lead Qualification
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -486,3 +579,4 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
     </div>
   );
 };
+

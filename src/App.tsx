@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavTab, Lead } from './types';
 import { SAMPLE_PRD_LEADS } from './data/sampleLeads';
 import { rankLeads } from './services/scoringEngine';
@@ -9,9 +9,34 @@ import { LeadAnalyzerScreen } from './components/LeadAnalyzerScreen';
 import { DashboardScreen } from './components/DashboardScreen';
 import { ScoringLogicScreen } from './components/ScoringLogicScreen';
 
+const STORAGE_KEY = 'leadiq_ai_leads_store_v1';
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<NavTab>('home');
-  const [leads, setLeads] = useState<Lead[]>(() => rankLeads(SAMPLE_PRD_LEADS));
+  const [leads, setLeads] = useState<Lead[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return rankLeads(parsed);
+        }
+      }
+    } catch {
+      // Storage unavailable or invalid
+    }
+    // Initially empty - 0 leads until analyzed by user
+    return [];
+  });
+
+  // Sync to localStorage whenever leads change
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(leads));
+    } catch (e) {
+      console.warn('Failed to save leads to localStorage', e);
+    }
+  }, [leads]);
 
   const handleNavigate = (tab: NavTab) => {
     setActiveTab(tab);
@@ -32,7 +57,16 @@ export default function App() {
     });
   };
 
-  const handleResetLeads = () => {
+  const handleClearLeads = () => {
+    setLeads([]);
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleLoadDemoLeads = () => {
     setLeads(rankLeads(SAMPLE_PRD_LEADS));
   };
 
@@ -56,7 +90,8 @@ export default function App() {
             leads={leads}
             onNavigate={handleNavigate}
             onAddLead={handleAddLead}
-            onResetLeads={handleResetLeads}
+            onResetLeads={handleClearLeads}
+            onLoadDemoLeads={handleLoadDemoLeads}
           />
         )}
 
