@@ -190,6 +190,16 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
     }
   };
 
+  const handleDownloadSampleCsv = () => {
+    const link = document.createElement('a');
+    link.href = '/sample-b2b-leads.csv';
+    link.download = 'sample-b2b-leads.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setStatusMessage('✓ Downloaded sample-b2b-leads.csv template. You can now upload it or edit it in Excel/Sheets!');
+  };
+
   const handleLoadSampleDataset = () => {
     setIsAnalyzing(true);
     setStatusMessage('Importing and qualifying 5 benchmark dataset leads...');
@@ -710,13 +720,23 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
                 <span className="material-symbols-outlined text-4xl text-[#006b2c] mb-2">cloud_upload</span>
                 <h3 className="text-sm font-bold text-[#0F172A] mb-1">Upload Lead CSV File</h3>
                 <p className="text-xs text-[#64748B] mb-4 max-w-sm mx-auto">
-                  Columns supported: Name, Company, Industry, Job Title, Budget, Requirements, Notes
+                  Columns supported: Name, Company, Industry, Job Title, Budget, Requirements, Notes, Location
                 </p>
-                <label className="inline-flex items-center gap-2 px-5 py-3 bg-white border border-[#E2E8F0] rounded-xl text-xs font-bold text-[#0F172A] hover:bg-[#F8FAFC] shadow-xs cursor-pointer transition-all min-h-[44px]">
-                  <span className="material-symbols-outlined text-sm">folder_open</span>
-                  Select CSV File
-                  <input type="file" accept=".csv" onChange={handleCsvFileUpload} className="hidden" />
-                </label>
+                <div className="flex flex-wrap items-center justify-center gap-2.5">
+                  <label className="inline-flex items-center gap-2 px-5 py-3 primary-gradient text-white rounded-xl text-xs font-bold shadow-md hover:opacity-95 cursor-pointer transition-all min-h-[44px]">
+                    <span className="material-symbols-outlined text-sm">folder_open</span>
+                    Upload Your CSV
+                    <input type="file" accept=".csv" onChange={handleCsvFileUpload} className="hidden" />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleDownloadSampleCsv}
+                    className="inline-flex items-center gap-2 px-4 py-3 bg-white border border-[#006b2c]/30 text-[#006b2c] rounded-xl text-xs font-bold hover:bg-[#006b2c]/5 shadow-xs cursor-pointer transition-all min-h-[44px]"
+                  >
+                    <span className="material-symbols-outlined text-sm">download</span>
+                    Download Sample CSV (10 Leads)
+                  </button>
+                </div>
               </div>
 
               <div className="p-4 bg-[#006b2c]/5 rounded-2xl border border-[#006b2c]/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
