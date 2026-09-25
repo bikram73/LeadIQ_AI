@@ -331,12 +331,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
               <path d="M0 0 L100 100 M100 0 L0 100" stroke="white" strokeWidth="0.1" />
             </svg>
           </div>
-          <h2 className="text-3xl md:text-5xl font-bold text-white mb-6 relative z-10">
+          <h2 className="text-3xl md:text-5xl font-bold text-white mb-8 relative z-10">
             Ready to transform your sales pipeline?
           </h2>
-          <p className="text-base md:text-lg text-white mb-10 max-w-2xl mx-auto relative z-10 opacity-90">
-            Start your 14-day free trial today. No credit card required. Experience the power of LeadIQ AI for your business.
-          </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 relative z-10">
             <button
               onClick={() => onNavigate('analyzer')}
