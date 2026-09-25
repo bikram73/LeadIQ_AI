@@ -17,7 +17,6 @@
 [![Express](https://img.shields.io/badge/Express-4.21.2-000000?style=flat-square&logo=express&logoColor=white)](https://expressjs.com/)
 [![Gemini 3.8 Flash](https://img.shields.io/badge/AI_Engine-Gemini_3.8_Flash-4285F4?style=flat-square&logo=google-gemini&logoColor=white)](https://ai.google.dev/)
 [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D18.0.0-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
-[![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
 
 <p align="center">
   <b>Qualify, score, and prioritize B2B inbound sales leads in real time with enterprise AI reasoning.</b><br/>
@@ -475,10 +474,6 @@ Contributions, feedback, and pull requests are welcome!
 5. Open a Pull Request
 
 ---
-
-## 📄 License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 <div align="center">
   <sub>Built with ❤️ by the LeadIQ AI Team using Google Gemini 3.8 Flash, React 19 & Tailwind CSS.</sub>
