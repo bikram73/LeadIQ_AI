@@ -1,7 +1,86 @@
 import React, { useState } from 'react';
 import { NavTab, Lead, LeadInput } from '../types';
 import { analyzeSingleLeadApi } from '../services/apiService';
-import { SAMPLE_PRD_LEADS } from '../data/sampleLeads';
+import { SAMPLE_PRD_LEADS, getSampleEmailText } from '../data/sampleLeads';
+
+// Intelligent extractor from raw email text
+function parseEmailContentToLead(rawText: string, fallbackLead?: Lead): LeadInput {
+  // Check if rawText matches any known sample lead
+  const matchedSample = SAMPLE_PRD_LEADS.find((s) => {
+    const nameMatch = rawText.toLowerCase().includes(s.fullName.toLowerCase());
+    const emailMatch = s.email && rawText.toLowerCase().includes(s.email.toLowerCase());
+    return nameMatch || emailMatch;
+  });
+
+  if (matchedSample) {
+    return {
+      fullName: matchedSample.fullName,
+      company: matchedSample.company,
+      industry: matchedSample.industry,
+      jobTitle: matchedSample.jobTitle,
+      companySize: matchedSample.companySize,
+      budget: matchedSample.budget,
+      location: matchedSample.location,
+      requirements: matchedSample.requirements,
+      notes: matchedSample.notes,
+      email: matchedSample.email,
+      emailContent: rawText,
+    };
+  }
+
+  // Heuristic extraction for custom emails
+  let extractedName = '';
+  let extractedEmail = '';
+  const fromMatch = rawText.match(/From:\s*([^<\n]+)(?:<([^>\n]+)>)?/i);
+  if (fromMatch) {
+    extractedName = fromMatch[1]?.trim() || '';
+    extractedEmail = fromMatch[2]?.trim() || '';
+    if (!extractedEmail && extractedName.includes('@')) {
+      extractedEmail = extractedName;
+      extractedName = extractedEmail.split('@')[0];
+    }
+  }
+
+  const subjectMatch = rawText.match(/Subject:\s*([^\n]+)/i);
+  const subject = subjectMatch ? subjectMatch[1].trim() : '';
+
+  const budgetMatch = rawText.match(/\$[\d,]+(?:\s*(?:k|thousand|million))?/i);
+  const budget = budgetMatch ? budgetMatch[0] : (fallbackLead?.budget || 'Unspecified');
+
+  let jobTitle = fallbackLead?.jobTitle || 'Business Contact';
+  if (/\bceo\b/i.test(rawText)) jobTitle = 'CEO';
+  else if (/\bcto\b/i.test(rawText)) jobTitle = 'CTO';
+  else if (/vp(?:\s+of)?\s+([a-zA-Z\s]+)/i.test(rawText)) {
+    const m = rawText.match(/vp(?:\s+of)?\s+([a-zA-Z\s]+)/i);
+    jobTitle = m ? `VP of ${m[1].trim().split('\n')[0]}` : 'VP';
+  } else if (/head of\s+([a-zA-Z\s]+)/i.test(rawText)) {
+    const m = rawText.match(/head of\s+([a-zA-Z\s]+)/i);
+    jobTitle = m ? `Head of ${m[1].trim().split('\n')[0]}` : 'Head of Department';
+  }
+
+  let company = fallbackLead?.company || 'Prospect Enterprise';
+  if (extractedEmail) {
+    const domain = extractedEmail.split('@')[1];
+    if (domain && !['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com'].includes(domain.toLowerCase())) {
+      const compName = domain.split('.')[0];
+      company = compName.charAt(0).toUpperCase() + compName.slice(1);
+    }
+  }
+
+  return {
+    fullName: extractedName || fallbackLead?.fullName || 'Prospect Contact',
+    company: company,
+    industry: fallbackLead?.industry || 'Enterprise Technology',
+    jobTitle: jobTitle,
+    companySize: fallbackLead?.companySize || '250-500',
+    budget: budget,
+    location: fallbackLead?.location || 'United States',
+    requirements: subject || fallbackLead?.requirements || 'AI Solution Evaluation',
+    notes: 'Parsed from raw inbound email inquiry',
+    email: extractedEmail || fallbackLead?.email || '',
+    emailContent: rawText,
+  };
+}
 
 interface LeadAnalyzerScreenProps {
   onNavigate: (tab: NavTab) => void;
@@ -15,22 +94,23 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
   onAddMultipleLeads,
 }) => {
   const [inputMode, setInputMode] = useState<'manual' | 'email' | 'csv'>('manual');
+  const [selectedSampleId, setSelectedSampleId] = useState<string>(SAMPLE_PRD_LEADS[0].id);
 
-  // Manual Form State
-  const [fullName, setFullName] = useState('David Brown');
-  const [company, setCompany] = useState('BuildPro');
-  const [industry, setIndustry] = useState('Construction');
-  const [jobTitle, setJobTitle] = useState('CEO');
-  const [companySize, setCompanySize] = useState('500-1000');
-  const [budget, setBudget] = useState('$120,000');
-  const [location, setLocation] = useState('Dallas, TX');
-  const [requirements, setRequirements] = useState('Enterprise AI Assistant for field & executive team');
-  const [notes, setNotes] = useState('CEO requested demo. Urgently evaluating vendor options.');
-  const [email, setEmail] = useState('david.brown@buildpro.com');
+  // Manual Form State - default to David Brown (SAMPLE_PRD_LEADS[0])
+  const [fullName, setFullName] = useState(SAMPLE_PRD_LEADS[0].fullName);
+  const [company, setCompany] = useState(SAMPLE_PRD_LEADS[0].company);
+  const [industry, setIndustry] = useState(SAMPLE_PRD_LEADS[0].industry);
+  const [jobTitle, setJobTitle] = useState(SAMPLE_PRD_LEADS[0].jobTitle);
+  const [companySize, setCompanySize] = useState(SAMPLE_PRD_LEADS[0].companySize);
+  const [budget, setBudget] = useState(SAMPLE_PRD_LEADS[0].budget);
+  const [location, setLocation] = useState(SAMPLE_PRD_LEADS[0].location);
+  const [requirements, setRequirements] = useState(SAMPLE_PRD_LEADS[0].requirements);
+  const [notes, setNotes] = useState(SAMPLE_PRD_LEADS[0].notes);
+  const [email, setEmail] = useState(SAMPLE_PRD_LEADS[0].email || '');
 
-  // Email Paste State
+  // Email Paste State - synchronized with David Brown
   const [rawEmailText, setRawEmailText] = useState(
-    `From: John Carter <jcarter@technova.io>\nSubject: Urgent Inquiry: AI Customer Support Automation\n\nHi LeadIQ Team,\n\nWe are looking to implement an AI Customer Support Automation platform at TechNova within the next 2 weeks. Our finance team has approved an initial budget of $80,000 for this project. As VP of Customer Success, I would like to schedule a call to review your capabilities and technical security.\n\nBest regards,\nJohn Carter\nVP of Customer Success, TechNova`
+    SAMPLE_PRD_LEADS[0].emailContent || getSampleEmailText(SAMPLE_PRD_LEADS[0])
   );
 
   // Analysis State
@@ -60,7 +140,7 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
       const result = await analyzeSingleLeadApi(leadInput);
       setAnalyzedLead(result);
       onAddLead(result);
-      setStatusMessage('✓ Lead successfully qualified and saved to Dashboard!');
+      setStatusMessage(`✓ Lead for ${leadInput.fullName} (${leadInput.company}) qualified and saved to Dashboard!`);
     } catch (err) {
       console.error(err);
       setStatusMessage('Error qualifying lead. Please try again.');
@@ -74,28 +154,17 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
     setIsAnalyzing(true);
     setStatusMessage(null);
 
-    // Extract basic information from raw email
-    const leadInput: LeadInput = {
-      fullName: 'John Carter',
-      company: 'TechNova',
-      industry: 'Software',
-      jobTitle: 'VP of Customer Success',
-      companySize: '250-500',
-      budget: '$80,000',
-      location: 'San Francisco, CA',
-      requirements: 'AI Customer Support Automation',
-      notes: 'Extracted from raw email inquiry',
-      emailContent: rawEmailText,
-      email: 'jcarter@technova.io',
-    };
+    const activeSample = SAMPLE_PRD_LEADS.find((s) => s.id === selectedSampleId);
+    const leadInput = parseEmailContentToLead(rawEmailText, activeSample);
 
     try {
       const result = await analyzeSingleLeadApi(leadInput);
       setAnalyzedLead(result);
       onAddLead(result);
-      setStatusMessage('✓ Email inquiry analyzed and saved to Dashboard!');
+      setStatusMessage(`✓ Inbound email from ${leadInput.fullName} (${leadInput.company}) successfully qualified and saved!`);
     } catch (err) {
       console.error(err);
+      setStatusMessage('Error qualifying email inquiry. Please try again.');
     } finally {
       setIsAnalyzing(false);
     }
@@ -137,6 +206,7 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
   };
 
   const handlePopulateSample = (sample: Lead) => {
+    setSelectedSampleId(sample.id);
     setFullName(sample.fullName);
     setCompany(sample.company);
     setIndustry(sample.industry);
@@ -147,7 +217,11 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
     setRequirements(sample.requirements);
     setNotes(sample.notes);
     setEmail(sample.email || '');
-    setInputMode('manual');
+
+    // Synchronize the email inquiry text to match the selected sample!
+    const emailText = sample.emailContent || getSampleEmailText(sample);
+    setRawEmailText(emailText);
+    setStatusMessage(`✓ Selected ${sample.fullName} (${sample.company}) – Form & Email Text synchronized!`);
   };
 
   return (
@@ -219,26 +293,46 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
       </div>
 
       {/* Quick Sample Lead Picker Chips */}
-      <div className="mb-8 bg-white p-4 rounded-2xl border border-[#E2E8F0] shadow-sm">
-        <div className="flex items-center justify-between mb-2">
+      <div className="mb-8 bg-white p-4 md:p-5 rounded-2xl border border-[#E2E8F0] shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
           <span className="text-xs font-bold text-[#64748B] uppercase tracking-wider flex items-center gap-1.5">
             <span className="material-symbols-outlined text-sm text-[#006b2c]">touch_app</span>
             Quick Test - Fill Sample Lead:
           </span>
-          <span className="text-[11px] text-[#94A3B8]">Click any chip to test</span>
+          <span className="text-[11px] text-[#006b2c] font-medium flex items-center gap-1">
+            <span className="material-symbols-outlined text-xs">sync</span>
+            Synchronizes with Form &amp; Email Text
+          </span>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {SAMPLE_PRD_LEADS.map((sample) => (
-            <button
-              key={sample.id}
-              onClick={() => handlePopulateSample(sample)}
-              className="px-3 py-1.5 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] hover:border-[#006b2c] hover:bg-[#006b2c]/5 text-xs font-semibold text-[#0F172A] transition-all flex items-center gap-2 cursor-pointer"
-            >
-              <span className={`w-2 h-2 rounded-full ${sample.score >= 80 ? 'bg-[#10B981]' : sample.score >= 60 ? 'bg-[#EAB308]' : 'bg-[#94A3B8]'}`} />
-              <span>{sample.fullName}</span>
-              <span className="text-[10px] text-[#64748B]">({sample.company})</span>
-            </button>
-          ))}
+        <div className="flex flex-wrap gap-2.5">
+          {SAMPLE_PRD_LEADS.map((sample) => {
+            const isSelected = selectedSampleId === sample.id;
+            return (
+              <button
+                key={sample.id}
+                type="button"
+                onClick={() => handlePopulateSample(sample)}
+                className={`px-3.5 py-2 rounded-xl border text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
+                  isSelected
+                    ? 'border-[#006b2c] bg-[#006b2c]/10 text-[#006b2c] ring-2 ring-[#006b2c]/20 shadow-xs'
+                    : 'border-[#E2E8F0] bg-[#F8FAFC] hover:border-[#006b2c] hover:bg-[#006b2c]/5 text-[#0F172A]'
+                }`}
+              >
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    sample.score >= 80 ? 'bg-[#10B981]' : sample.score >= 60 ? 'bg-[#EAB308]' : 'bg-[#94A3B8]'
+                  }`}
+                />
+                <span>{sample.fullName}</span>
+                <span className={`text-[10px] ${isSelected ? 'text-[#006b2c]/80' : 'text-[#64748B]'}`}>
+                  ({sample.company})
+                </span>
+                {isSelected && (
+                  <span className="material-symbols-outlined text-xs text-[#006b2c]">check_circle</span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -420,15 +514,23 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-[#64748B] mb-1.5">
-                  Raw Email Inquiry Content *
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-[#64748B]">
+                    Raw Email Inquiry Content *
+                  </label>
+                  {selectedSampleId && (
+                    <span className="text-[11px] font-semibold text-[#006b2c] bg-[#006b2c]/10 px-2 py-0.5 rounded-md flex items-center gap-1">
+                      <span className="material-symbols-outlined text-xs">sync</span>
+                      Synced: {SAMPLE_PRD_LEADS.find((s) => s.id === selectedSampleId)?.fullName} ({SAMPLE_PRD_LEADS.find((s) => s.id === selectedSampleId)?.company})
+                    </span>
+                  )}
+                </div>
                 <textarea
                   rows={10}
                   value={rawEmailText}
                   onChange={(e) => setRawEmailText(e.target.value)}
                   placeholder="Paste inbound sales email inquiry text here..."
-                  className="w-full p-4 rounded-xl border border-[#E2E8F0] text-xs font-mono text-[#0F172A] bg-[#F8FAFC] leading-relaxed resize-none"
+                  className="w-full p-4 rounded-xl border border-[#E2E8F0] text-xs font-mono text-[#0F172A] bg-[#F8FAFC] leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-[#006b2c]"
                   required
                 />
               </div>

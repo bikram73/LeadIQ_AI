@@ -14,6 +14,22 @@ export const SAMPLE_PRD_LEADS: Lead[] = [
     requirements: 'Enterprise AI Assistant',
     notes: 'CEO requested demo directly. Large deployment scope with high budget commitment.',
     email: 'david.brown@buildpro.com',
+    emailContent: `From: David Brown <david.brown@buildpro.com>
+To: sales@leadiq.ai
+Subject: Urgent Request: Enterprise AI Assistant for BuildPro Executive & Field Operations
+
+Hi LeadIQ Team,
+
+I am David Brown, CEO of BuildPro. We are an enterprise construction management firm with 750 employees headquartered in Dallas, TX. 
+
+Our leadership team is urgently evaluating vendor solutions for an Enterprise AI Assistant to optimize communications and workflows across both our job sites and executive management. Our board has approved a dedicated budget of $120,000 for this deployment.
+
+Given our immediate rollout schedule for next month, I would like to schedule a 30-minute executive briefing and technical demo with your enterprise solutions team. Please let me know your availability for this Thursday or Friday.
+
+Best regards,
+David Brown
+Chief Executive Officer, BuildPro
+Dallas, TX | david.brown@buildpro.com`,
     score: 97,
     fitScore: 'Excellent',
     intentScore: 'High',
@@ -53,6 +69,18 @@ export const SAMPLE_PRD_LEADS: Lead[] = [
     requirements: 'AI Customer Support Automation',
     notes: 'Need solution in 2 weeks. Budget available and approved by finance.',
     email: 'jcarter@technova.io',
+    emailContent: `From: John Carter <jcarter@technova.io>
+To: sales@leadiq.ai
+Subject: Urgent Inquiry: AI Customer Support Automation
+
+Hi LeadIQ Team,
+
+We are looking to implement an AI Customer Support Automation platform at TechNova within the next 2 weeks. Our finance team has approved an initial budget of $80,000 for this project. As VP of Customer Success, I would like to schedule a call to review your capabilities and technical security.
+
+Best regards,
+John Carter
+VP of Customer Success, TechNova
+San Francisco, CA | jcarter@technova.io`,
     score: 92,
     fitScore: 'Excellent',
     intentScore: 'High',
@@ -92,6 +120,22 @@ export const SAMPLE_PRD_LEADS: Lead[] = [
     requirements: 'Inventory chatbot & order tracking',
     notes: 'Need proposal this week to present to leadership team.',
     email: 'mross@retailmax.com',
+    emailContent: `From: Michael Ross <mross@retailmax.com>
+To: sales@leadiq.ai
+Subject: Request for Proposal: RetailMax Inventory Chatbot & Order Tracking
+
+Hi LeadIQ Team,
+
+I am Michael Ross, Head of E-Commerce at RetailMax (150 employees in Chicago). We are looking to deploy an automated inventory chatbot and order tracking system for our online retail operations. 
+
+We have an approved pilot budget of $15,000 and need a formal proposal and quote this week so I can present it to our leadership committee on Monday.
+
+Looking forward to your swift response.
+
+Best regards,
+Michael Ross
+Head of E-Commerce, RetailMax
+Chicago, IL | mross@retailmax.com`,
     score: 81,
     fitScore: 'Good',
     intentScore: 'High',
@@ -131,6 +175,20 @@ export const SAMPLE_PRD_LEADS: Lead[] = [
     requirements: 'Exploring automation options',
     notes: 'Just researching options for future quarters.',
     email: 'sarah.lee@healthplus.org',
+    emailContent: `From: Sarah Lee <sarah.lee@healthplus.org>
+To: info@leadiq.ai
+Subject: Exploratory Inquiry: Healthcare AI Automation Options
+
+Hi LeadIQ Team,
+
+My name is Sarah Lee, Innovation Specialist at HealthPlus. We are currently exploring potential automation solutions for patient inquiry workflows in upcoming quarters. 
+
+We are in the preliminary research phase and do not have an approved budget or immediate implementation timeline yet. Could you share some product overview brochures, compliance documentation (HIPAA), and case studies?
+
+Thanks,
+Sarah Lee
+Innovation Specialist, HealthPlus
+Boston, MA | sarah.lee@healthplus.org`,
     score: 58,
     fitScore: 'Average',
     intentScore: 'Medium',
@@ -170,6 +228,20 @@ export const SAMPLE_PRD_LEADS: Lead[] = [
     requirements: 'Curious about AI capabilities',
     notes: 'No timeline. Casual inquiry from contact form.',
     email: 'emma@creativeads.co',
+    emailContent: `From: Emma Wilson <emma@creativeads.co>
+To: hello@leadiq.ai
+Subject: Curious about AI capabilities
+
+Hi there,
+
+I came across LeadIQ on LinkedIn and was curious about what your AI tool does. We are a small creative marketing agency (about 25 people). 
+
+We have not decided on any budget or timeline yet, just wanted to check if you have any free tier or introductory materials to look at.
+
+Thanks,
+Emma Wilson
+Marketing Assistant, CreativeAds
+Austin, TX | emma@creativeads.co`,
     score: 42,
     fitScore: 'Poor',
     intentScore: 'Low',
@@ -197,3 +269,30 @@ export const SAMPLE_PRD_LEADS: Lead[] = [
     createdAt: '2026-07-27'
   }
 ];
+
+export function getSampleEmailText(lead: Partial<Lead>): string {
+  if (lead.emailContent) {
+    return lead.emailContent;
+  }
+  const match = SAMPLE_PRD_LEADS.find(
+    (s) => s.id === lead.id || s.fullName.toLowerCase() === (lead.fullName || '').toLowerCase()
+  );
+  if (match && match.emailContent) {
+    return match.emailContent;
+  }
+  return `From: ${lead.fullName || 'Prospective Lead'} <${lead.email || 'lead@company.com'}>
+To: sales@leadiq.ai
+Subject: Inquiry regarding ${lead.requirements || 'AI Qualification Platform'} - ${lead.company || 'Enterprise'}
+
+Hi LeadIQ Team,
+
+I am ${lead.fullName || 'Lead'}, ${lead.jobTitle || 'Representative'} at ${lead.company || 'Company'}. 
+We are looking for solutions regarding ${lead.requirements || 'AI automation'}. 
+
+Budget: ${lead.budget || 'In evaluation'}
+Notes: ${lead.notes || 'Inquiry from platform'}
+
+Best regards,
+${lead.fullName || 'Lead'}
+${lead.company || ''}`;
+}
