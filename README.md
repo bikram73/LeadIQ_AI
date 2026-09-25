@@ -5,6 +5,11 @@
 ![LeadIQ AI Banner](https://img.shields.io/badge/LeadIQ_AI-B2B_Sales_Qualification-006b2c?style=for-the-badge&logo=google&logoColor=white)
 <br/>
 
+[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-leadiq--ai.netlify.app-006b2c?style=for-the-badge&logo=netlify&logoColor=white)](https://leadiq-ai.netlify.app/)
+[![GitHub Repository](https://img.shields.io/badge/⭐_GitHub_Repo-bikram73%2FLeadIQ__AI-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/bikram73/LeadIQ_AI)
+
+<br/>
+
 [![React](https://img.shields.io/badge/React-19.0.1-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8.2-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-6.2.3-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev/)
@@ -17,6 +22,11 @@
 <p align="center">
   <b>Qualify, score, and prioritize B2B inbound sales leads in real time with enterprise AI reasoning.</b><br/>
   Transform raw contact submissions, unformatted email inquiries, and bulk CSV uploads into scored, ranked, and action-ready prospect pipelines.
+</p>
+
+<p align="center">
+  🌐 <b>Live App:</b> <a href="https://leadiq-ai.netlify.app/" target="_blank">https://leadiq-ai.netlify.app/</a> &nbsp;|&nbsp;
+  🐙 <b>GitHub:</b> <a href="https://github.com/bikram73/LeadIQ_AI" target="_blank">https://github.com/bikram73/LeadIQ_AI</a>
 </p>
 
 </div>
@@ -163,8 +173,8 @@ Follow these steps to set up and run LeadIQ AI locally on your system:
 
 #### 1. Clone the Repository
 ```bash
-git clone https://github.com/your-username/leadiq-ai.git
-cd leadiq-ai
+git clone https://github.com/bikram73/LeadIQ_AI.git
+cd LeadIQ_AI
 ```
 
 #### 2. Install Project Dependencies
