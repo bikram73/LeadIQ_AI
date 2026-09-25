@@ -154,7 +154,7 @@ function fallbackEvaluateLead(lead: any) {
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', model: 'gemini-2.5-flash', app: 'LeadIQ AI' });
+  res.json({ status: 'ok', model: 'gemini-3.8-flash', app: 'LeadIQ AI' });
 });
 
 // Analyze Single Lead Endpoint
@@ -186,7 +186,7 @@ Please evaluate this lead against B2B sales criteria and return strictly the JSO
 `;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.8-flash',
       contents: [
         { role: 'user', parts: [{ text: SYSTEM_PROMPT }, { text: leadPrompt }] }
       ],
@@ -203,7 +203,7 @@ Please evaluate this lead against B2B sales criteria and return strictly the JSO
       jsonResult = fallbackEvaluateLead(lead);
     }
 
-    return res.json({ success: true, result: jsonResult, source: 'gemini-2.5-flash' });
+    return res.json({ success: true, result: jsonResult, source: 'gemini-3.8-flash' });
   } catch (error: any) {
     console.error('Error analyzing lead with Gemini:', error);
     const fallbackResult = fallbackEvaluateLead(req.body.lead || req.body);
@@ -239,7 +239,7 @@ LEAD PROFILE TO QUALIFY (${i + 1}/${leads.length}):
 - Notes: ${lead.notes || lead.Notes || ''}
 `;
           const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3.8-flash',
             contents: [
               { role: 'user', parts: [{ text: SYSTEM_PROMPT }, { text: leadPrompt }] }
             ],

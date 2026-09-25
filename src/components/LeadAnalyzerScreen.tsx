@@ -401,7 +401,7 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
                   {isAnalyzing ? (
                     <>
                       <span className="material-symbols-outlined text-base animate-spin">refresh</span>
-                      Analyzing with Gemini 2.5 AI...
+                      Analyzing with Gemini 3.8 AI...
                     </>
                   ) : (
                     <>

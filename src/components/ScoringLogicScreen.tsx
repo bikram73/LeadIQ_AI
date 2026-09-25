@@ -11,8 +11,8 @@ export const ScoringLogicScreen: React.FC<ScoringLogicScreenProps> = ({ onNaviga
 
   const faqs = [
     {
-      q: 'How does Gemini 2.5 Flash score lead intent & budget?',
-      a: 'Gemini 2.5 Flash analyzes natural language inputs from contact forms and email text. It evaluates explicit budget figures, implementation timelines, and executive title authority against standard B2B qualification frameworks.',
+      q: 'How does Gemini 3.8 Flash score lead intent & budget?',
+      a: 'Gemini 3.8 Flash analyzes natural language inputs from contact forms and email text. It evaluates explicit budget figures, implementation timelines, and executive title authority against standard B2B qualification frameworks.',
     },
     {
       q: 'What are the exact weight distributions?',
@@ -40,7 +40,7 @@ export const ScoringLogicScreen: React.FC<ScoringLogicScreenProps> = ({ onNaviga
           Scoring Methodology &amp; Weight Distribution
         </h1>
         <p className="text-base text-[#64748B] leading-relaxed">
-          Transparent breakdown of how LeadIQ AI leverages Google Gemini 2.5 Flash to qualify, score, and rank inbound sales leads.
+          Transparent breakdown of how LeadIQ AI leverages Google Gemini 3.8 Flash to qualify, score, and rank inbound sales leads.
         </p>
       </div>
 
@@ -150,7 +150,7 @@ export const ScoringLogicScreen: React.FC<ScoringLogicScreenProps> = ({ onNaviga
             <span className="w-3 h-3 rounded-full bg-[#EF4444]" />
             <span className="w-3 h-3 rounded-full bg-[#F59E0B]" />
             <span className="w-3 h-3 rounded-full bg-[#10B981]" />
-            <span className="text-xs font-mono text-[#94A3B8] ml-2">server.ts • Gemini 2.5 Flash API</span>
+            <span className="text-xs font-mono text-[#94A3B8] ml-2">server.ts • Gemini 3.8 Flash API</span>
           </div>
           <span className="text-xs font-mono text-[#10B981] bg-[#10B981]/10 px-3 py-1 rounded-full border border-[#10B981]/20">
             @google/genai SDK
@@ -160,7 +160,7 @@ export const ScoringLogicScreen: React.FC<ScoringLogicScreenProps> = ({ onNaviga
         <pre className="font-mono text-xs md:text-sm overflow-x-auto text-[#E2E8F0] leading-relaxed p-2">
           <code>
 {`const response = await ai.models.generateContent({
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.8-flash',
   contents: [
     { role: 'user', parts: [{ text: SYSTEM_PROMPT }, { text: leadPrompt }] }
   ],
