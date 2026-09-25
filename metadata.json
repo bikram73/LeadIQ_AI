@@ -1,6 +1,6 @@
 {
   "name": "LeadIQ AI – AI-Powered Lead Qualification Agent",
-  "description": "Qualify, Score & Prioritize Sales Leads with Google Gemini AI",
+  "description": "Qualify, Score & Prioritize Sales Leads with AI",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

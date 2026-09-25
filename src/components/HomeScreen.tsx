@@ -23,7 +23,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
                 bolt
               </span>
               <span className="text-xs font-semibold uppercase tracking-wider">
-                Powered by Google Gemini AI
+                Intelligent Sales AI
               </span>
             </div>
 
@@ -32,7 +32,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
             </h1>
 
             <p className="text-lg text-[#64748B] max-w-xl leading-relaxed">
-              LeadIQ AI utilizes state-of-the-art Google Gemini models to automatically analyze firmographics, behavioral data, and buying intent. Stop wasting time on cold leads and focus on what converts.
+              LeadIQ AI utilizes state-of-the-art AI models to automatically analyze firmographics, behavioral data, and buying intent. Stop wasting time on cold leads and focus on what converts.
             </p>
 
             <div className="flex flex-wrap items-center gap-4 pt-2">
@@ -124,7 +124,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
               </div>
               <h3 className="text-2xl font-semibold text-[#0F172A]">AI Lead Scoring</h3>
               <p className="text-base text-[#64748B] max-w-md">
-                Our Gemini-powered engine assigns 0-100 scores based on historic conversion patterns and real-time lead profile data.
+                Our AI-powered engine assigns 0-100 scores based on historic conversion patterns and real-time lead profile data.
               </p>
             </div>
             <div className="mt-8 flex flex-wrap gap-3">
@@ -232,7 +232,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
               </div>
               <div>
                 <h4 className="text-xl font-semibold text-[#0F172A] mb-2">2. Analysis</h4>
-                <p className="text-sm text-[#64748B]">Gemini AI parses profiles and market data signals.</p>
+                <p className="text-sm text-[#64748B]">Intelligent AI parses profiles and market data signals.</p>
               </div>
             </div>
 
@@ -335,7 +335,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
             Ready to transform your sales pipeline?
           </h2>
           <p className="text-base md:text-lg text-white mb-10 max-w-2xl mx-auto relative z-10 opacity-90">
-            Start your 14-day free trial today. No credit card required. Experience the power of Gemini AI for your business.
+            Start your 14-day free trial today. No credit card required. Experience the power of LeadIQ AI for your business.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 relative z-10">
             <button

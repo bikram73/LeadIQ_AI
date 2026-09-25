@@ -60,7 +60,7 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
       const result = await analyzeSingleLeadApi(leadInput);
       setAnalyzedLead(result);
       onAddLead(result);
-      setStatusMessage('✓ Lead successfully qualified by Gemini AI and saved to Dashboard!');
+      setStatusMessage('✓ Lead successfully qualified and saved to Dashboard!');
     } catch (err) {
       console.error(err);
       setStatusMessage('Error qualifying lead. Please try again.');
@@ -74,7 +74,7 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
     setIsAnalyzing(true);
     setStatusMessage(null);
 
-    // Extract basic information from raw email or pass raw email to Gemini
+    // Extract basic information from raw email
     const leadInput: LeadInput = {
       fullName: 'John Carter',
       company: 'TechNova',
@@ -93,7 +93,7 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
       const result = await analyzeSingleLeadApi(leadInput);
       setAnalyzedLead(result);
       onAddLead(result);
-      setStatusMessage('✓ Email inquiry analyzed by Gemini AI and saved to Dashboard!');
+      setStatusMessage('✓ Email inquiry analyzed and saved to Dashboard!');
     } catch (err) {
       console.error(err);
     } finally {
@@ -164,7 +164,7 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
           </button>
           <h1 className="text-3xl font-extrabold text-[#0F172A]">Lead Qualification Engine</h1>
           <p className="text-sm text-[#64748B]">
-            Submit prospect details, raw emails, or CSV files for instant Gemini AI qualification &amp; scoring.
+            Submit prospect details, raw emails, or CSV files for instant AI qualification &amp; scoring.
           </p>
         </div>
 
@@ -401,12 +401,12 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
                   {isAnalyzing ? (
                     <>
                       <span className="material-symbols-outlined text-base animate-spin">refresh</span>
-                      Analyzing with Gemini 3.8 AI...
+                      Analyzing Lead with AI...
                     </>
                   ) : (
                     <>
                       <span className="material-symbols-outlined text-base">auto_awesome</span>
-                      Qualify Lead with Gemini AI
+                      Qualify Lead with AI
                     </>
                   )}
                 </button>
@@ -448,12 +448,12 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
                 {isAnalyzing ? (
                   <>
                     <span className="material-symbols-outlined text-base animate-spin">refresh</span>
-                    Parsing Email with Gemini...
+                    Parsing Email with AI...
                   </>
                 ) : (
                   <>
                     <span className="material-symbols-outlined text-base">psychology</span>
-                    Analyze Inbound Email with Gemini
+                    Analyze Inbound Email with AI
                   </>
                 )}
               </button>
@@ -551,7 +551,7 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
               {/* Reasoning Bullets */}
               <div className="mb-5">
                 <span className="text-xs font-bold text-[#64748B] uppercase tracking-wider block mb-2">
-                  Gemini Evaluation Reasoning
+                  AI Evaluation Reasoning
                 </span>
                 <ul className="space-y-1.5">
                   {analyzedLead.reasoning.map((reason, idx) => (
@@ -610,7 +610,7 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
               </div>
               <h3 className="text-base font-bold text-[#0F172A] mb-1">Ready for Qualification</h3>
               <p className="text-xs text-[#64748B] max-w-xs mb-4">
-                Fill in the prospect details or click any sample chip to view real-time Gemini AI evaluation.
+                Fill in the prospect details or click any sample chip to view real-time AI evaluation.
               </p>
               <button
                 onClick={() => handlePopulateSample(SAMPLE_PRD_LEADS[0])}

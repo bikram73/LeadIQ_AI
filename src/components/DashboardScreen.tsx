@@ -206,7 +206,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
           <div className="p-6 border-b border-[#E2E8F0] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h3 className="text-lg font-bold text-[#0F172A]">Ranked Opportunities</h3>
-              <p className="text-xs text-[#64748B]">Automatically sorted by Gemini AI Lead Score (Highest → Lowest)</p>
+              <p className="text-xs text-[#64748B]">Automatically sorted by AI Lead Score (Highest → Lowest)</p>
             </div>
 
             <div className="flex items-center gap-2 w-full sm:w-auto">

@@ -11,20 +11,20 @@ export const ScoringLogicScreen: React.FC<ScoringLogicScreenProps> = ({ onNaviga
 
   const faqs = [
     {
-      q: 'How does Gemini 3.8 Flash score lead intent & budget?',
-      a: 'Gemini 3.8 Flash analyzes natural language inputs from contact forms and email text. It evaluates explicit budget figures, implementation timelines, and executive title authority against standard B2B qualification frameworks.',
+      q: 'How does the AI engine score lead intent & budget?',
+      a: 'The AI engine analyzes natural language inputs from contact forms and email text. It evaluates explicit budget figures, implementation timelines, and executive title authority against standard B2B qualification frameworks.',
     },
     {
       q: 'What are the exact weight distributions?',
       a: 'The scoring model evaluates 7 key factors: Buying Intent (25%), Budget Availability (20%), Decision Maker Involvement (15%), Timeline / Urgency (15%), Company Size (10%), Industry Fit (10%), and Requirement Clarity (5%).',
     },
     {
-      q: 'Why use Google Gemini AI over static IF/THEN rules?',
-      a: 'Traditional rules fail when job titles vary (e.g., "Founder" vs "Head of Innovation") or when budget is phrased naturally ("Approved $80k for Q3"). Gemini reasoning understands context, sentiment, and nuance that rigid rules miss.',
+      q: 'Why use AI reasoning over static IF/THEN rules?',
+      a: 'Traditional rules fail when job titles vary (e.g., "Founder" vs "Head of Innovation") or when budget is phrased naturally ("Approved $80k for Q3"). Deep semantic reasoning understands context, sentiment, and nuance that rigid rules miss.',
     },
     {
       q: 'Is prospect data stored or used for model training?',
-      a: 'No. All lead inputs are processed via server-side Gemini API calls. Data is encrypted in transit and never persisted to public databases or used for foundational model training.',
+      a: 'No. All lead inputs are processed via secure server-side API calls. Data is encrypted in transit and never persisted to public databases or used for model training.',
     },
   ];
 
@@ -34,13 +34,13 @@ export const ScoringLogicScreen: React.FC<ScoringLogicScreenProps> = ({ onNaviga
       <div className="mb-12 text-center max-w-3xl mx-auto">
         <div className="inline-flex items-center gap-2 bg-[#006b2c]/10 text-[#006b2c] px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider mb-4">
           <span className="material-symbols-outlined text-base">psychology</span>
-          Gemini AI Architecture
+          LeadIQ AI Architecture
         </div>
         <h1 className="text-3xl md:text-4xl font-extrabold text-[#0F172A] mb-4">
           Scoring Methodology &amp; Weight Distribution
         </h1>
         <p className="text-base text-[#64748B] leading-relaxed">
-          Transparent breakdown of how LeadIQ AI leverages Google Gemini 3.8 Flash to qualify, score, and rank inbound sales leads.
+          Transparent breakdown of how LeadIQ AI leverages advanced AI models to qualify, score, and rank inbound sales leads.
         </p>
       </div>
 
@@ -143,24 +143,23 @@ export const ScoringLogicScreen: React.FC<ScoringLogicScreenProps> = ({ onNaviga
         </div>
       </div>
 
-      {/* Gemini Code Engine Window */}
+      {/* Code Engine Window */}
       <div className="bg-[#0F172A] text-white rounded-3xl p-6 md:p-8 shadow-2xl mb-12 border border-[#1E293B]">
         <div className="flex items-center justify-between pb-4 mb-4 border-b border-[#334155]">
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-[#EF4444]" />
             <span className="w-3 h-3 rounded-full bg-[#F59E0B]" />
             <span className="w-3 h-3 rounded-full bg-[#10B981]" />
-            <span className="text-xs font-mono text-[#94A3B8] ml-2">server.ts • Gemini 3.8 Flash API</span>
+            <span className="text-xs font-mono text-[#94A3B8] ml-2">server.ts • Lead Qualification API</span>
           </div>
           <span className="text-xs font-mono text-[#10B981] bg-[#10B981]/10 px-3 py-1 rounded-full border border-[#10B981]/20">
-            @google/genai SDK
+            Enterprise AI Engine
           </span>
         </div>
 
         <pre className="font-mono text-xs md:text-sm overflow-x-auto text-[#E2E8F0] leading-relaxed p-2">
           <code>
 {`const response = await ai.models.generateContent({
-  model: 'gemini-3.8-flash',
   contents: [
     { role: 'user', parts: [{ text: SYSTEM_PROMPT }, { text: leadPrompt }] }
   ],

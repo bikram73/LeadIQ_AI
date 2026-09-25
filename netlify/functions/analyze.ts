@@ -171,7 +171,7 @@ Please evaluate this lead against B2B sales criteria and return strictly the JSO
 `;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.8-flash',
       contents: [
         { role: 'user', parts: [{ text: SYSTEM_PROMPT }, { text: leadPrompt }] }
       ],
@@ -188,7 +188,7 @@ Please evaluate this lead against B2B sales criteria and return strictly the JSO
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ success: true, result: jsonResult, source: 'gemini-2.5-flash' }),
+      body: JSON.stringify({ success: true, result: jsonResult, source: 'gemini-3.8-flash' }),
     };
   } catch (error: any) {
     const fallbackResult = fallbackEvaluateLead({});
