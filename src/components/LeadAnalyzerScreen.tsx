@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { NavTab, Lead, LeadInput } from '../types';
-import { analyzeSingleLeadApi } from '../services/apiService';
+import { analyzeSingleLeadApi, analyzeBulkLeadsApi } from '../services/apiService';
 import { SAMPLE_PRD_LEADS, getSampleEmailText } from '../data/sampleLeads';
+import { validateLeadInput } from '../services/scoringEngine';
 
 // Intelligent extractor from raw email text
 function parseEmailContentToLead(rawText: string, fallbackLead?: Lead): LeadInput {
@@ -117,10 +118,10 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzedLead, setAnalyzedLead] = useState<Lead | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const handleAnalyzeManual = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsAnalyzing(true);
     setStatusMessage(null);
 
     const leadInput: LeadInput = {
@@ -136,14 +137,28 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
       email,
     };
 
+    // Client-side validation per PRD TC-MAN-002 to TC-MAN-006
+    const validation = validateLeadInput(leadInput);
+    if (!validation.isValid) {
+      const errMap: Record<string, string> = {};
+      validation.errors.forEach((err) => {
+        errMap[err.field] = err.message;
+      });
+      setFormErrors(errMap);
+      setStatusMessage(validation.errors.map((e) => e.message).join(' '));
+      return;
+    }
+    setFormErrors({});
+    setIsAnalyzing(true);
+
     try {
       const result = await analyzeSingleLeadApi(leadInput);
       setAnalyzedLead(result);
       onAddLead(result);
       setStatusMessage(`✓ Lead for ${leadInput.fullName} (${leadInput.company}) qualified and saved to Dashboard!`);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      setStatusMessage('Error qualifying lead. Please try again.');
+      setStatusMessage(err.message || 'Error qualifying lead. Please try again.');
     } finally {
       setIsAnalyzing(false);
     }
@@ -185,22 +200,98 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
     if (!file) return;
 
     setIsAnalyzing(true);
+    setStatusMessage('Parsing CSV file...');
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       const content = event.target?.result as string;
-      if (content) {
-        // Parse CSV lines
-        const lines = content.split('\n').filter((l) => l.trim().length > 0);
-        if (lines.length > 1) {
-          // Mock parsing CSV rows into sample leads
-          onAddMultipleLeads(SAMPLE_PRD_LEADS);
-          setAnalyzedLead(SAMPLE_PRD_LEADS[0]);
-          setStatusMessage(`✓ Successfully imported CSV file '${file.name}' with ${lines.length - 1} leads!`);
-        } else {
-          setStatusMessage('CSV file appears empty.');
-        }
+      if (!content || !content.trim()) {
+        setStatusMessage('Error: CSV file appears empty.');
+        setIsAnalyzing(false);
+        return;
       }
-      setIsAnalyzing(false);
+
+      const rawLines = content.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
+      if (rawLines.length < 2) {
+        setStatusMessage('Error: CSV file must contain a header row and at least one lead row.');
+        setIsAnalyzing(false);
+        return;
+      }
+
+      // Check header row for required Requirement column (TC-CSV-002)
+      const headerLine = rawLines[0];
+      const headers = headerLine.split(',').map((h) => h.trim().replace(/^["']|["']$/g, '').toLowerCase());
+
+      const hasRequirementCol = headers.some((h) => h.includes('require'));
+      if (!hasRequirementCol) {
+        setStatusMessage('Required column missing: Requirement');
+        setIsAnalyzing(false);
+        return;
+      }
+
+      const nameIdx = headers.findIndex((h) => h.includes('name'));
+      const compIdx = headers.findIndex((h) => h.includes('company'));
+      const reqIdx = headers.findIndex((h) => h.includes('require'));
+      const roleIdx = headers.findIndex((h) => h.includes('role') || h.includes('title'));
+      const indIdx = headers.findIndex((h) => h.includes('industry'));
+      const budIdx = headers.findIndex((h) => h.includes('budget'));
+      const sizeIdx = headers.findIndex((h) => h.includes('size'));
+      const emailIdx = headers.findIndex((h) => h.includes('email'));
+      const notesIdx = headers.findIndex((h) => h.includes('note'));
+
+      const parsedLeads: LeadInput[] = [];
+      const seenNames = new Set<string>();
+      let duplicateCount = 0;
+
+      for (let i = 1; i < rawLines.length; i++) {
+        const line = rawLines[i];
+        if (!line.trim()) continue; // Skip empty rows (TC-CSV-003)
+
+        const cols = line.split(',').map((c) => c.trim().replace(/^["']|["']$/g, ''));
+        const name = (nameIdx >= 0 ? cols[nameIdx] : cols[0]) || `Lead ${i}`;
+        const comp = (compIdx >= 0 ? cols[compIdx] : cols[1]) || 'Company';
+        const req = (reqIdx >= 0 ? cols[reqIdx] : cols[2]) || 'Inquiry';
+
+        if (seenNames.has(name.toLowerCase())) {
+          duplicateCount++;
+        }
+        seenNames.add(name.toLowerCase());
+
+        parsedLeads.push({
+          fullName: name,
+          company: comp,
+          requirements: req,
+          jobTitle: (roleIdx >= 0 ? cols[roleIdx] : '') || 'Business Contact',
+          industry: (indIdx >= 0 ? cols[indIdx] : '') || 'General B2B',
+          budget: (budIdx >= 0 ? cols[budIdx] : '') || 'Unspecified',
+          companySize: (sizeIdx >= 0 ? cols[sizeIdx] : '') || '50-100',
+          location: 'United States',
+          email: (emailIdx >= 0 ? cols[emailIdx] : '') || '',
+          notes: (notesIdx >= 0 ? cols[notesIdx] : '') || '',
+        });
+      }
+
+      if (parsedLeads.length === 0) {
+        setStatusMessage('Error: No valid lead data found in CSV.');
+        setIsAnalyzing(false);
+        return;
+      }
+
+      setStatusMessage(`Analyzing ${parsedLeads.length} leads with AI Qualification Engine...`);
+      try {
+        const analyzed = await analyzeBulkLeadsApi(parsedLeads);
+        onAddMultipleLeads(analyzed);
+        setAnalyzedLead(analyzed[0] || null);
+        setStatusMessage(
+          `✓ Successfully qualified ${analyzed.length}/${parsedLeads.length} leads from CSV file '${file.name}'! ${
+            duplicateCount > 0 ? `(${duplicateCount} duplicate records processed)` : ''
+          }`
+        );
+      } catch (err: any) {
+        console.error(err);
+        setStatusMessage(`Error processing CSV leads: ${err.message || 'Unknown error'}`);
+      } finally {
+        setIsAnalyzing(false);
+      }
     };
     reader.readAsText(file);
   };
@@ -360,11 +451,21 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
                   <input
                     type="text"
                     value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
+                    onChange={(e) => {
+                      setFullName(e.target.value);
+                      if (formErrors.fullName) setFormErrors((p) => ({ ...p, fullName: '' }));
+                    }}
                     placeholder="e.g. David Brown"
-                    className="w-full px-4 py-2.5 rounded-xl border border-[#E2E8F0] text-xs font-medium text-[#0F172A]"
-                    required
+                    className={`w-full px-4 py-2.5 rounded-xl border text-xs font-medium text-[#0F172A] ${
+                      formErrors.fullName ? 'border-red-500 bg-red-50/50 ring-1 ring-red-500' : 'border-[#E2E8F0]'
+                    }`}
                   />
+                  {formErrors.fullName && (
+                    <p className="text-[11px] text-red-500 font-semibold mt-1 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-xs">error</span>
+                      {formErrors.fullName}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -372,12 +473,23 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
                     Work Email
                   </label>
                   <input
-                    type="email"
+                    type="text"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (formErrors.email) setFormErrors((p) => ({ ...p, email: '' }));
+                    }}
                     placeholder="david.brown@buildpro.com"
-                    className="w-full px-4 py-2.5 rounded-xl border border-[#E2E8F0] text-xs font-medium text-[#0F172A]"
+                    className={`w-full px-4 py-2.5 rounded-xl border text-xs font-medium text-[#0F172A] ${
+                      formErrors.email ? 'border-red-500 bg-red-50/50 ring-1 ring-red-500' : 'border-[#E2E8F0]'
+                    }`}
                   />
+                  {formErrors.email && (
+                    <p className="text-[11px] text-red-500 font-semibold mt-1 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-xs">error</span>
+                      {formErrors.email}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -389,16 +501,26 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
                   <input
                     type="text"
                     value={company}
-                    onChange={(e) => setCompany(e.target.value)}
+                    onChange={(e) => {
+                      setCompany(e.target.value);
+                      if (formErrors.company) setFormErrors((p) => ({ ...p, company: '' }));
+                    }}
                     placeholder="e.g. BuildPro"
-                    className="w-full px-4 py-2.5 rounded-xl border border-[#E2E8F0] text-xs font-medium text-[#0F172A]"
-                    required
+                    className={`w-full px-4 py-2.5 rounded-xl border text-xs font-medium text-[#0F172A] ${
+                      formErrors.company ? 'border-red-500 bg-red-50/50 ring-1 ring-red-500' : 'border-[#E2E8F0]'
+                    }`}
                   />
+                  {formErrors.company && (
+                    <p className="text-[11px] text-red-500 font-semibold mt-1 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-xs">error</span>
+                      {formErrors.company}
+                    </p>
+                  )}
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-[#64748B] mb-1.5">
-                    Job Title / Role *
+                    Job Title / Role
                   </label>
                   <input
                     type="text"
@@ -406,7 +528,6 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
                     onChange={(e) => setJobTitle(e.target.value)}
                     placeholder="e.g. CEO or VP of Operations"
                     className="w-full px-4 py-2.5 rounded-xl border border-[#E2E8F0] text-xs font-medium text-[#0F172A]"
-                    required
                   />
                 </div>
               </div>
@@ -459,11 +580,21 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
                 <textarea
                   rows={2}
                   value={requirements}
-                  onChange={(e) => setRequirements(e.target.value)}
+                  onChange={(e) => {
+                    setRequirements(e.target.value);
+                    if (formErrors.requirements) setFormErrors((p) => ({ ...p, requirements: '' }));
+                  }}
                   placeholder="e.g. Enterprise AI Customer Assistant for sales & support automation"
-                  className="w-full px-4 py-2.5 rounded-xl border border-[#E2E8F0] text-xs font-medium text-[#0F172A] resize-none"
-                  required
+                  className={`w-full px-4 py-2.5 rounded-xl border text-xs font-medium text-[#0F172A] resize-none ${
+                    formErrors.requirements ? 'border-red-500 bg-red-50/50 ring-1 ring-red-500' : 'border-[#E2E8F0]'
+                  }`}
                 />
+                {formErrors.requirements && (
+                  <p className="text-[11px] text-red-500 font-semibold mt-1 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-xs">error</span>
+                    {formErrors.requirements}
+                  </p>
+                )}
               </div>
 
               <div>

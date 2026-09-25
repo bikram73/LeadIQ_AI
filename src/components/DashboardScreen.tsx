@@ -15,22 +15,30 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
 }) => {
   const [selectedLead, setSelectedLead] = useState<Lead>(leads[0] || null);
   const [filterTier, setFilterTier] = useState<string>('ALL');
+  const [sortBy, setSortBy] = useState<'highest' | 'lowest'>('highest');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  // Filter leads
-  const filteredLeads = leads.filter((lead) => {
-    const matchesTier =
-      filterTier === 'ALL' || lead.tier.toUpperCase() === filterTier.toUpperCase();
-    const q = searchQuery.toLowerCase();
-    const matchesSearch =
-      !searchQuery ||
-      lead.fullName.toLowerCase().includes(q) ||
-      lead.company.toLowerCase().includes(q) ||
-      lead.jobTitle.toLowerCase().includes(q) ||
-      lead.industry.toLowerCase().includes(q) ||
-      lead.requirements.toLowerCase().includes(q);
-    return matchesTier && matchesSearch;
-  });
+  // Filter & sort leads
+  const filteredLeads = leads
+    .filter((lead) => {
+      const matchesTier =
+        filterTier === 'ALL' ||
+        lead.tier.toUpperCase() === filterTier.toUpperCase() ||
+        (filterTier === 'COLD' && (lead.tier === 'Cold' || lead.tier === 'Very Low'));
+      const q = searchQuery.toLowerCase();
+      const matchesSearch =
+        !searchQuery ||
+        lead.fullName.toLowerCase().includes(q) ||
+        lead.company.toLowerCase().includes(q) ||
+        lead.jobTitle.toLowerCase().includes(q) ||
+        lead.industry.toLowerCase().includes(q) ||
+        lead.requirements.toLowerCase().includes(q);
+      return matchesTier && matchesSearch;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'lowest') return a.score - b.score;
+      return b.score - a.score;
+    });
 
   // Calculate KPIs
   const totalLeads = leads.length;
@@ -95,6 +103,10 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
     downloadAnchor.remove();
   };
 
+  const handleExportPdf = () => {
+    window.print();
+  };
+
   return (
     <div className="pt-24 pb-16 px-4 md:px-10 max-w-[1280px] mx-auto">
       {/* Top Header Bar */}
@@ -129,6 +141,14 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
           >
             <span className="material-symbols-outlined text-base">code</span>
             Export JSON
+          </button>
+
+          <button
+            onClick={handleExportPdf}
+            className="px-4 py-2.5 bg-white border border-[#E2E8F0] rounded-xl text-xs font-bold text-[#0F172A] hover:bg-[#F8FAFC] shadow-sm transition-colors flex items-center gap-2 cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-base">picture_as_pdf</span>
+            Print / PDF
           </button>
 
           <button
@@ -227,12 +247,22 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
                 value={filterTier}
                 onChange={(e) => setFilterTier(e.target.value)}
                 className="px-3 py-1.5 text-xs rounded-xl border border-[#E2E8F0] bg-white font-bold text-[#0F172A]"
+                title="Filter by Qualification Tier"
               >
                 <option value="ALL">All Tiers</option>
-                <option value="HOT">Hot (90-100)</option>
-                <option value="WARM">Warm (70-89)</option>
-                <option value="COLD">Cold (40-69)</option>
-                <option value="VERY LOW">Very Low (&lt;40)</option>
+                <option value="HOT">Hot (90–100)</option>
+                <option value="WARM">Warm (70–89)</option>
+                <option value="COLD">Cold (0–69)</option>
+              </select>
+
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as 'highest' | 'lowest')}
+                className="px-3 py-1.5 text-xs rounded-xl border border-[#E2E8F0] bg-white font-bold text-[#0F172A]"
+                title="Sort Opportunities"
+              >
+                <option value="highest">Score: High → Low</option>
+                <option value="lowest">Score: Low → High</option>
               </select>
             </div>
           </div>

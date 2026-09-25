@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { NavTab, Lead } from './types';
 import { SAMPLE_PRD_LEADS } from './data/sampleLeads';
+import { rankLeads } from './services/scoringEngine';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { HomeScreen } from './components/HomeScreen';
@@ -10,38 +11,29 @@ import { ScoringLogicScreen } from './components/ScoringLogicScreen';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<NavTab>('home');
-  const [leads, setLeads] = useState<Lead[]>(SAMPLE_PRD_LEADS);
+  const [leads, setLeads] = useState<Lead[]>(() => rankLeads(SAMPLE_PRD_LEADS));
 
   const handleNavigate = (tab: NavTab) => {
     setActiveTab(tab);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const reRankLeads = (leadList: Lead[]): Lead[] => {
-    // Sort descending by score
-    const sorted = [...leadList].sort((a, b) => b.score - a.score);
-    return sorted.map((item, index) => ({
-      ...item,
-      rank: index + 1,
-    }));
-  };
-
   const handleAddLead = (newLead: Lead) => {
     setLeads((prev) => {
       // Check if duplicate ID exists, replace or append
       const filtered = prev.filter((l) => l.id !== newLead.id);
-      return reRankLeads([newLead, ...filtered]);
+      return rankLeads([newLead, ...filtered]);
     });
   };
 
   const handleAddMultipleLeads = (newLeads: Lead[]) => {
     setLeads((prev) => {
-      return reRankLeads([...newLeads, ...prev]);
+      return rankLeads([...newLeads, ...prev]);
     });
   };
 
   const handleResetLeads = () => {
-    setLeads(SAMPLE_PRD_LEADS);
+    setLeads(rankLeads(SAMPLE_PRD_LEADS));
   };
 
   return (
