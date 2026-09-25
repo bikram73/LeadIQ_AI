@@ -53,31 +53,33 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
             </div>
           </div>
 
-          <div className="relative group mt-4 lg:mt-0 max-w-lg mx-auto lg:max-w-none">
-            <div className="glass-card p-3 sm:p-5 md:p-6 rounded-2xl sm:rounded-3xl shadow-xl overflow-hidden border border-[#E2E8F0]">
+          <div className="relative group mt-6 lg:mt-0 w-full mx-auto lg:max-w-none">
+            {/* Hero Main Graphic Card */}
+            <div className="glass-card p-4 sm:p-6 md:p-8 lg:p-10 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden border border-[#E2E8F0] min-h-[340px] sm:min-h-[420px] md:min-h-[480px] lg:min-h-[540px] flex items-center justify-center bg-white/95 backdrop-blur-md relative">
               <img
-                className="w-full h-auto rounded-xl object-contain shadow-xs"
+                className="w-full h-auto max-h-[500px] rounded-xl object-contain shadow-xs transition-transform duration-300 group-hover:scale-[1.01]"
                 src="/hero-lead-qualification.svg"
                 alt="AI Lead Qualified Flow with Intent, Budget, Authority"
                 loading="eager"
               />
-              <div className="absolute -bottom-4 -right-4 w-48 h-48 bg-[#10B981]/20 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute -bottom-6 -right-6 w-64 h-64 bg-[#10B981]/25 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute -top-6 -right-6 w-48 h-48 bg-[#006b2c]/15 rounded-full blur-3xl pointer-events-none" />
             </div>
 
             {/* Floating Stat Overlay */}
-            <div className="absolute -top-3 -left-2 sm:-top-5 sm:-left-4 glass-card p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl shadow-lg border border-[#E2E8F0]">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="p-1.5 sm:p-2 bg-[#10B981] rounded-lg text-white">
+            <div className="absolute -top-4 -left-3 sm:-top-6 sm:-left-6 md:-top-8 md:-left-8 glass-card p-3.5 sm:p-4 md:p-6 rounded-xl sm:rounded-2xl md:rounded-3xl shadow-2xl border border-[#E2E8F0] bg-white/95 backdrop-blur-lg z-20 transition-all hover:scale-105">
+              <div className="flex items-center gap-3 md:gap-4">
+                <div className="p-2.5 sm:p-3 md:p-4 bg-[#10B981] rounded-xl md:rounded-2xl text-white shadow-md flex items-center justify-center">
                   <span
-                    className="material-symbols-outlined text-white text-base sm:text-xl"
+                    className="material-symbols-outlined text-white text-xl sm:text-2xl md:text-3xl"
                     style={{ fontVariationSettings: "'FILL' 1" }}
                   >
                     trending_up
                   </span>
                 </div>
                 <div>
-                  <p className="text-[10px] sm:text-xs font-semibold text-[#64748B]">Lead Quality</p>
-                  <p className="text-base sm:text-xl font-bold text-[#0F172A]">+42% Higher</p>
+                  <p className="text-xs sm:text-sm md:text-base font-bold text-[#64748B]">Lead Quality</p>
+                  <p className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-[#0F172A] tracking-tight">+42% Higher</p>
                 </div>
               </div>
             </div>
