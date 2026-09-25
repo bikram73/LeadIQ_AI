@@ -192,7 +192,7 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
 
   const handleLoadSampleDataset = () => {
     setIsAnalyzing(true);
-    setStatusMessage('Importing and qualifying 5 PRD Benchmark dataset leads...');
+    setStatusMessage('Importing and qualifying 5 benchmark dataset leads...');
     setTimeout(() => {
       const sampleLeadsWithFlag = SAMPLE_PRD_LEADS.map((l) => ({
         ...l,
@@ -201,7 +201,7 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
       onAddMultipleLeads(sampleLeadsWithFlag);
       setAnalyzedLead(sampleLeadsWithFlag[0]);
       setIsAnalyzing(false);
-      setStatusMessage('✓ Loaded 5 PRD sample dataset leads (preview session only - cleared on refresh) into Dashboard queue!');
+      setStatusMessage('✓ Loaded 5 sample dataset leads (preview session only - cleared on refresh) into Dashboard queue!');
     }, 600);
   };
 
@@ -721,7 +721,7 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
 
               <div className="p-4 bg-[#006b2c]/5 rounded-2xl border border-[#006b2c]/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <h4 className="text-xs font-bold text-[#0F172A]">Instant PRD Benchmark Dataset</h4>
+                  <h4 className="text-xs font-bold text-[#0F172A]">Instant Benchmark Dataset</h4>
                   <p className="text-[11px] text-[#64748B]">Load 5 sample leads (David Brown, John Carter, Michael Ross, Sarah Lee, Emma Wilson)</p>
                 </div>
                 <button

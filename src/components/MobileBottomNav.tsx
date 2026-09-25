@@ -36,7 +36,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
     },
     {
       id: 'scoring-logic',
-      label: 'Logic & PRD',
+      label: 'Scoring Logic',
       icon: 'verified',
     },
   ];

@@ -52,7 +52,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             onClick={() => onNavigate('scoring-logic')}
             className="text-xs font-semibold text-[#64748B] hover:text-[#006b2c] transition-colors py-2 px-1 cursor-pointer min-h-[40px] flex items-center"
           >
-            Scoring Logic &amp; PRD
+            Scoring Logic
           </button>
         </nav>
       </div>

@@ -82,7 +82,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onNavigate, leadsCoun
                 : 'text-[#64748B] hover:text-[#006b2c]'
             }`}
           >
-            Scoring Logic &amp; PRD
+            Scoring Logic
           </button>
         </nav>
 
@@ -166,7 +166,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onNavigate, leadsCoun
             }`}
           >
             <span className="material-symbols-outlined text-xl">verified</span>
-            Scoring Methodology &amp; PRD
+            Scoring Methodology
           </button>
 
           <div className="pt-2 border-t border-[#E2E8F0] flex items-center justify-between px-2 text-xs text-[#64748B]">
