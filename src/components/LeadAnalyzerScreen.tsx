@@ -170,13 +170,6 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
 
         <div className="flex items-center gap-3">
           <button
-            onClick={handleLoadSampleDataset}
-            className="px-4 py-2.5 bg-white border border-[#006b2c]/30 text-[#006b2c] rounded-xl text-xs font-bold hover:bg-[#006b2c]/5 transition-all flex items-center gap-2 cursor-pointer shadow-sm"
-          >
-            <span className="material-symbols-outlined text-sm">dataset</span>
-            Load 5 Sample PRD Leads
-          </button>
-          <button
             onClick={() => onNavigate('dashboard')}
             className="px-4 py-2.5 bg-[#0F172A] text-white rounded-xl text-xs font-bold hover:bg-[#1E293B] transition-all flex items-center gap-2 cursor-pointer shadow-sm"
           >
