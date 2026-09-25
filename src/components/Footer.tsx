@@ -53,25 +53,6 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             Dashboard
           </button>
         </nav>
-
-        <div className="flex gap-3">
-          <a
-            href="#language"
-            onClick={(e) => e.preventDefault()}
-            className="w-9 h-9 rounded-full border border-[#E2E8F0] flex items-center justify-center text-[#64748B] hover:bg-white hover:text-[#006b2c] transition-all"
-          >
-            <span className="material-symbols-outlined text-lg">language</span>
-          </a>
-          <a
-            href="#email"
-            onClick={(e) => e.preventDefault()}
-            className="w-9 h-9 rounded-full border border-[#E2E8F0] flex items-center justify-center text-[#64748B] hover:bg-white hover:text-[#006b2c] transition-all"
-          >
-            <span className="material-symbols-outlined text-lg">
-              alternate_email
-            </span>
-          </a>
-        </div>
       </div>
     </footer>
   );
