@@ -25,16 +25,17 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onNavigate }) => {
           </span>
         </div>
 
-        <nav className="hidden md:flex items-center gap-8">
+        <nav className="hidden md:flex items-center gap-7">
           <button
             onClick={() => onNavigate('home')}
-            className={`font-medium text-sm transition-colors duration-200 cursor-pointer ${
+            className={`font-medium text-sm transition-colors duration-200 cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'home'
                 ? 'text-[#006b2c] border-b-2 border-[#006b2c] pb-1 font-semibold'
                 : 'text-[#64748B] hover:text-[#006b2c]'
             }`}
           >
-            Features
+            <span className="material-symbols-outlined text-lg">home</span>
+            Home
           </button>
           <button
             onClick={() => onNavigate('analyzer')}
