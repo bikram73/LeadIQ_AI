@@ -3,6 +3,7 @@ import { NavTab, Lead, LeadInput } from '../types';
 import { analyzeSingleLeadApi, analyzeBulkLeadsApi } from '../services/apiService';
 import { SAMPLE_PRD_LEADS, getSampleEmailText } from '../data/sampleLeads';
 import { validateLeadInput } from '../services/scoringEngine';
+import { parseRfc4180Csv } from '../utils/csvParser';
 
 // Intelligent extractor from raw email text
 function parseEmailContentToLead(rawText: string, fallbackLead?: Lead): LeadInput {
@@ -155,7 +156,7 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
       const result = await analyzeSingleLeadApi(leadInput);
       setAnalyzedLead(result);
       onAddLead(result);
-      setStatusMessage(`✓ Lead for ${leadInput.fullName} (${leadInput.company}) qualified and saved to Dashboard!`);
+      setStatusMessage(`✓ Lead for ${leadInput.fullName} (${leadInput.company}) qualified and added to current session dashboard!`);
     } catch (err: any) {
       console.error(err);
       setStatusMessage(err.message || 'Error qualifying lead. Please try again.');
@@ -176,7 +177,7 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
       const result = await analyzeSingleLeadApi(leadInput);
       setAnalyzedLead(result);
       onAddLead(result);
-      setStatusMessage(`✓ Inbound email from ${leadInput.fullName} (${leadInput.company}) successfully qualified and saved!`);
+      setStatusMessage(`✓ Inbound email from ${leadInput.fullName} (${leadInput.company}) successfully qualified and added to session queue!`);
     } catch (err) {
       console.error(err);
       setStatusMessage('Error qualifying email inquiry. Please try again.');
@@ -191,7 +192,7 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
       onAddMultipleLeads(SAMPLE_PRD_LEADS);
       setAnalyzedLead(SAMPLE_PRD_LEADS[0]);
       setIsAnalyzing(false);
-      setStatusMessage('✓ Loaded 5 PRD sample dataset leads (David Brown, John Carter, Michael Ross, Sarah Lee, Emma Wilson) into Dashboard!');
+      setStatusMessage('✓ Loaded 5 PRD sample dataset leads (David Brown, John Carter, Michael Ross, Sarah Lee, Emma Wilson) into session dashboard queue!');
     }, 600);
   };
 
@@ -200,7 +201,7 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
     if (!file) return;
 
     setIsAnalyzing(true);
-    setStatusMessage('Parsing CSV file...');
+    setStatusMessage('Parsing CSV file with RFC-4180 standard parser...');
     const reader = new FileReader();
     reader.onload = async (event) => {
       const content = event.target?.result as string;
@@ -210,17 +211,16 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
         return;
       }
 
-      const rawLines = content.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
-      if (rawLines.length < 2) {
-        setStatusMessage('Error: CSV file must contain a header row and at least one lead row.');
+      // RFC-4180 Compliant Parsing (properly handles quotes, commas inside fields, multiline)
+      const parsedCsv = parseRfc4180Csv(content);
+      if (parsedCsv.errors.length > 0 || parsedCsv.headers.length === 0) {
+        setStatusMessage(`Error: ${parsedCsv.errors.join(' ') || 'Invalid CSV format'}`);
         setIsAnalyzing(false);
         return;
       }
 
       // Check header row for required Requirement column (TC-CSV-002)
-      const headerLine = rawLines[0];
-      const headers = headerLine.split(',').map((h) => h.trim().replace(/^["']|["']$/g, '').toLowerCase());
-
+      const headers = parsedCsv.headers.map((h) => h.toLowerCase());
       const hasRequirementCol = headers.some((h) => h.includes('require'));
       if (!hasRequirementCol) {
         setStatusMessage('Required column missing: Requirement');
@@ -228,28 +228,27 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
         return;
       }
 
-      const nameIdx = headers.findIndex((h) => h.includes('name'));
-      const compIdx = headers.findIndex((h) => h.includes('company'));
-      const reqIdx = headers.findIndex((h) => h.includes('require'));
-      const roleIdx = headers.findIndex((h) => h.includes('role') || h.includes('title'));
-      const indIdx = headers.findIndex((h) => h.includes('industry'));
-      const budIdx = headers.findIndex((h) => h.includes('budget'));
-      const sizeIdx = headers.findIndex((h) => h.includes('size'));
-      const emailIdx = headers.findIndex((h) => h.includes('email'));
-      const notesIdx = headers.findIndex((h) => h.includes('note'));
+      const nameKey = parsedCsv.headers.find((h) => h.toLowerCase().includes('name')) || parsedCsv.headers[0];
+      const compKey = parsedCsv.headers.find((h) => h.toLowerCase().includes('company')) || parsedCsv.headers[1];
+      const reqKey = parsedCsv.headers.find((h) => h.toLowerCase().includes('require')) || parsedCsv.headers[2];
+      const roleKey = parsedCsv.headers.find((h) => h.toLowerCase().includes('role') || h.toLowerCase().includes('title'));
+      const indKey = parsedCsv.headers.find((h) => h.toLowerCase().includes('industry'));
+      const budKey = parsedCsv.headers.find((h) => h.toLowerCase().includes('budget'));
+      const sizeKey = parsedCsv.headers.find((h) => h.toLowerCase().includes('size'));
+      const emailKey = parsedCsv.headers.find((h) => h.toLowerCase().includes('email'));
+      const notesKey = parsedCsv.headers.find((h) => h.toLowerCase().includes('note'));
 
       const parsedLeads: LeadInput[] = [];
       const seenNames = new Set<string>();
       let duplicateCount = 0;
 
-      for (let i = 1; i < rawLines.length; i++) {
-        const line = rawLines[i];
-        if (!line.trim()) continue; // Skip empty rows (TC-CSV-003)
+      parsedCsv.rows.forEach((row, idx) => {
+        const name = (nameKey ? row[nameKey] : '')?.trim() || `Lead ${idx + 1}`;
+        const comp = (compKey ? row[compKey] : '')?.trim() || 'Company';
+        const req = (reqKey ? row[reqKey] : '')?.trim() || 'Inquiry';
 
-        const cols = line.split(',').map((c) => c.trim().replace(/^["']|["']$/g, ''));
-        const name = (nameIdx >= 0 ? cols[nameIdx] : cols[0]) || `Lead ${i}`;
-        const comp = (compIdx >= 0 ? cols[compIdx] : cols[1]) || 'Company';
-        const req = (reqIdx >= 0 ? cols[reqIdx] : cols[2]) || 'Inquiry';
+        // Check for empty row
+        if (!name && !comp && !req) return;
 
         if (seenNames.has(name.toLowerCase())) {
           duplicateCount++;
@@ -260,15 +259,15 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
           fullName: name,
           company: comp,
           requirements: req,
-          jobTitle: (roleIdx >= 0 ? cols[roleIdx] : '') || 'Business Contact',
-          industry: (indIdx >= 0 ? cols[indIdx] : '') || 'General B2B',
-          budget: (budIdx >= 0 ? cols[budIdx] : '') || 'Unspecified',
-          companySize: (sizeIdx >= 0 ? cols[sizeIdx] : '') || '50-100',
+          jobTitle: (roleKey ? row[roleKey] : '')?.trim() || 'Business Contact',
+          industry: (indKey ? row[indKey] : '')?.trim() || 'General B2B',
+          budget: (budKey ? row[budKey] : '')?.trim() || 'Unspecified',
+          companySize: (sizeKey ? row[sizeKey] : '')?.trim() || '50-100',
           location: 'United States',
-          email: (emailIdx >= 0 ? cols[emailIdx] : '') || '',
-          notes: (notesIdx >= 0 ? cols[notesIdx] : '') || '',
+          email: (emailKey ? row[emailKey] : '')?.trim() || '',
+          notes: (notesKey ? row[notesKey] : '')?.trim() || '',
         });
-      }
+      });
 
       if (parsedLeads.length === 0) {
         setStatusMessage('Error: No valid lead data found in CSV.');
@@ -282,7 +281,7 @@ export const LeadAnalyzerScreen: React.FC<LeadAnalyzerScreenProps> = ({
         onAddMultipleLeads(analyzed);
         setAnalyzedLead(analyzed[0] || null);
         setStatusMessage(
-          `✓ Successfully qualified ${analyzed.length}/${parsedLeads.length} leads from CSV file '${file.name}'! ${
+          `✓ Successfully qualified ${analyzed.length}/${parsedLeads.length} leads from CSV file '${file.name}' into current session! ${
             duplicateCount > 0 ? `(${duplicateCount} duplicate records processed)` : ''
           }`
         );

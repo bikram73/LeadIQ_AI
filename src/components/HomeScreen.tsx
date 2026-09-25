@@ -166,7 +166,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
             </div>
             <h3 className="text-xl font-semibold text-[#0F172A]">Smart Lead Ranking</h3>
             <p className="text-sm text-[#64748B]">
-              Automatically re-rank your entire database every 24 hours based on new activity and firmographic changes.
+              Instantly rank and sort all leads in real-time based on deterministic multi-factor qualification criteria.
             </p>
           </div>
 
@@ -219,7 +219,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
               </div>
               <div>
                 <h4 className="text-xl font-semibold text-[#0F172A] mb-2">1. Upload</h4>
-                <p className="text-sm text-[#64748B]">Import CSV or sync CRM contacts effortlessly.</p>
+                <p className="text-sm text-[#64748B]">Import CSV files or analyze live inquiries with zero server database footprint.</p>
               </div>
             </div>
 
@@ -315,7 +315,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
                 </div>
                 <div>
                   <h4 className="text-lg font-semibold text-[#0F172A] mb-1">Bulk Processing</h4>
-                  <p className="text-sm text-[#64748B]">Whether you have 100 or 1,000,000 leads, our cloud-native architecture scales with your demand instantly.</p>
+                  <p className="text-sm text-[#64748B]">Process single inquiries or batch CSV files quickly with responsive client-side evaluation.</p>
                 </div>
               </div>
             </div>

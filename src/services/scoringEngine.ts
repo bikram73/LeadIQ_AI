@@ -180,7 +180,18 @@ export function calculateDecisionMakerScore(roleOrTitle: string, explicitAuthori
 
 export function calculateBudgetScore(budgetStr: string): number {
   const b = (budgetStr || '').toLowerCase().trim();
-  if (!b || b === 'unknown' || b === 'not provided' || b === 'not decided' || b === 'no budget') {
+  if (
+    !b ||
+    b === 'unknown' ||
+    b === 'not provided' ||
+    b === 'not decided' ||
+    b === 'no budget' ||
+    b === 'tbd' ||
+    b === 'unspecified' ||
+    b === 'n/a' ||
+    b === 'none' ||
+    b === 'pending'
+  ) {
     return 4;
   }
 

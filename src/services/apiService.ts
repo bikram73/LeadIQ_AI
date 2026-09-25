@@ -6,6 +6,13 @@ import {
   getLeadTier,
 } from './scoringEngine';
 
+const tierColors = {
+  Hot: { bg: 'bg-[#006b2c]/10', text: 'text-[#006b2c]' },
+  Warm: { bg: 'bg-[#10B981]/10', text: 'text-[#10B981]' },
+  Cold: { bg: 'bg-[#EAB308]/10', text: 'text-[#B45309]' },
+  'Very Low': { bg: 'bg-[#94A3B8]/10', text: 'text-[#64748B]' },
+};
+
 export async function analyzeSingleLeadApi(input: LeadInput): Promise<Lead> {
   // Client-side pre-validation
   const validation = validateLeadInput(input);
@@ -29,9 +36,12 @@ export async function analyzeSingleLeadApi(input: LeadInput): Promise<Lead> {
     }
 
     if (data && data.result) {
+      // Deterministic validation: guarantees sum(7 factors) === score and tier compliance
       const validated = validateAIResponse(data.result);
       const r = validated.isValid ? validated.validatedResult : data.result;
       const score = typeof r.lead_score === 'number' ? r.lead_score : 50;
+      const tierKey: LeadTier = getLeadTier(score);
+      const colorScheme = tierColors[tierKey] || tierColors['Cold'];
 
       const initials =
         (input.fullName || 'New Lead')
@@ -40,17 +50,6 @@ export async function analyzeSingleLeadApi(input: LeadInput): Promise<Lead> {
           .join('')
           .toUpperCase()
           .slice(0, 2) || 'NL';
-
-      const tierKey: LeadTier = getLeadTier(score);
-
-      const tierColors = {
-        Hot: { bg: 'bg-[#006b2c]/10', text: 'text-[#006b2c]' },
-        Warm: { bg: 'bg-[#10B981]/10', text: 'text-[#10B981]' },
-        Cold: { bg: 'bg-[#EAB308]/10', text: 'text-[#B45309]' },
-        'Very Low': { bg: 'bg-[#94A3B8]/10', text: 'text-[#64748B]' },
-      };
-
-      const colorScheme = tierColors[tierKey] || tierColors['Cold'];
 
       return {
         ...input,
@@ -71,7 +70,7 @@ export async function analyzeSingleLeadApi(input: LeadInput): Promise<Lead> {
       };
     }
   } catch (err: any) {
-    // If it's a validation error, re-throw so UI shows the validation message
+    // Re-throw if validation error
     if (err.message && (err.message.includes('required') || err.message.includes('valid work email'))) {
       throw err;
     }
@@ -80,12 +79,6 @@ export async function analyzeSingleLeadApi(input: LeadInput): Promise<Lead> {
 
   // Deterministic calculation if fetch fails or network is offline
   const result = scoreLead(input);
-  const tierColors = {
-    Hot: { bg: 'bg-[#006b2c]/10', text: 'text-[#006b2c]' },
-    Warm: { bg: 'bg-[#10B981]/10', text: 'text-[#10B981]' },
-    Cold: { bg: 'bg-[#EAB308]/10', text: 'text-[#B45309]' },
-    'Very Low': { bg: 'bg-[#94A3B8]/10', text: 'text-[#64748B]' },
-  };
   const colorScheme = tierColors[result.tier] || tierColors['Cold'];
 
   return {
@@ -117,7 +110,7 @@ export async function analyzeBulkLeadsApi(leads: LeadInput[]): Promise<Lead[]> {
 
     const data = await res.json();
     if (data && Array.isArray(data.results)) {
-      return data.results.map((r: any, idx: number) => {
+      return data.results.map((rawResult: any, idx: number) => {
         const lead: LeadInput = leads[idx] || {
           fullName: 'New Lead',
           company: 'Company',
@@ -129,8 +122,13 @@ export async function analyzeBulkLeadsApi(leads: LeadInput[]): Promise<Lead[]> {
           location: '',
           notes: '',
         };
+
+        // Deterministic validation on bulk results
+        const validated = validateAIResponse(rawResult);
+        const r = validated.isValid ? validated.validatedResult : rawResult;
         const score = typeof r.lead_score === 'number' ? r.lead_score : 50;
         const tier = getLeadTier(score);
+        const colorScheme = tierColors[tier] || tierColors['Cold'];
 
         return {
           ...lead,
@@ -141,12 +139,12 @@ export async function analyzeBulkLeadsApi(leads: LeadInput[]): Promise<Lead[]> {
           intentScore: r.intent || 'Medium',
           tier,
           summary: r.summary || `Bulk lead qualified with score ${score}/100.`,
-          reasoning: r.reasoning || ['Bulk CSV qualification'],
+          reasoning: Array.isArray(r.reasoning) ? r.reasoning : ['Bulk CSV qualification'],
           nextAction: r.next_action || 'Follow up',
           factorBreakdown: r.factor_breakdown,
           avatarInitials: ((lead.fullName || 'NL').split(' ').map((n: string) => n[0]).join('').slice(0, 2) || 'NL').toUpperCase(),
-          avatarBg: tier === 'Hot' ? 'bg-[#006b2c]/10' : tier === 'Warm' ? 'bg-[#10B981]/10' : 'bg-[#EAB308]/10',
-          avatarTextColor: tier === 'Hot' ? 'text-[#006b2c]' : tier === 'Warm' ? 'text-[#10B981]' : 'text-[#B45309]',
+          avatarBg: colorScheme.bg,
+          avatarTextColor: colorScheme.text,
           createdAt: new Date().toISOString().split('T')[0],
         };
       });
@@ -158,6 +156,8 @@ export async function analyzeBulkLeadsApi(leads: LeadInput[]): Promise<Lead[]> {
   // Fallback deterministic bulk qualification
   return leads.map((lead, idx) => {
     const res = scoreLead(lead);
+    const colorScheme = tierColors[res.tier] || tierColors['Cold'];
+
     return {
       ...lead,
       id: `lead-csv-det-${Date.now()}-${idx}`,
@@ -171,10 +171,9 @@ export async function analyzeBulkLeadsApi(leads: LeadInput[]): Promise<Lead[]> {
       nextAction: res.nextAction,
       factorBreakdown: res.factorBreakdown,
       avatarInitials: ((lead.fullName || 'NL').split(' ').map((n: string) => n[0]).join('').slice(0, 2) || 'NL').toUpperCase(),
-      avatarBg: res.tier === 'Hot' ? 'bg-[#006b2c]/10' : res.tier === 'Warm' ? 'bg-[#10B981]/10' : 'bg-[#EAB308]/10',
-      avatarTextColor: res.tier === 'Hot' ? 'text-[#006b2c]' : res.tier === 'Warm' ? 'text-[#10B981]' : 'text-[#B45309]',
+      avatarBg: colorScheme.bg,
+      avatarTextColor: colorScheme.text,
       createdAt: new Date().toISOString().split('T')[0],
     };
   });
 }
-

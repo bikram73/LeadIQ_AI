@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Lead, NavTab } from '../types';
+import { serializeLeadsToCsv } from '../utils/csvParser';
 
 interface DashboardScreenProps {
   leads: Lead[];
@@ -62,46 +63,16 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
   const handleExportCsv = () => {
     if (leads.length === 0) return;
 
-    const headers = [
-      'Rank',
-      'Name',
-      'Company',
-      'Job Title',
-      'Industry',
-      'Score',
-      'Tier',
-      'Fit Score',
-      'Intent',
-      'Budget',
-      'Requirements',
-      'Next Recommended Action',
-      'Summary'
-    ];
-
-    const rows = leads.map((l) => [
-      l.rank,
-      `"${l.fullName}"`,
-      `"${l.company}"`,
-      `"${l.jobTitle}"`,
-      `"${l.industry}"`,
-      l.score,
-      l.tier,
-      l.fitScore,
-      l.intentScore,
-      `"${l.budget}"`,
-      `"${l.requirements.replace(/"/g, '""')}"`,
-      `"${l.nextAction.replace(/"/g, '""')}"`,
-      `"${l.summary.replace(/"/g, '""')}"`
-    ]);
-
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
+    const csvData = serializeLeadsToCsv(leads);
+    const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
+    link.setAttribute('href', url);
     link.setAttribute('download', `LeadIQ_AI_Qualified_Leads_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const handleExportJson = () => {
